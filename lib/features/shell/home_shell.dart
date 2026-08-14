@@ -55,11 +55,38 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         WidgetsBinding.instance.addPostFrameCallback((_) => _openVoiceAdd());
       }
     });
+    final dlDebug = ref.watch(deepLinkDebugProvider);
     return AppBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
         extendBody: true,
-        body: IndexedStack(index: _index, children: _tabs),
+        body: Stack(
+          children: [
+            IndexedStack(index: _index, children: _tabs),
+            // TEMPORARY diagnostic banner (remove once Back-Tap is confirmed).
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 4,
+              left: 8,
+              right: 8,
+              child: IgnorePointer(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'BUILD v1.0.1 • DL: $dlDebug',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        color: Colors.white, fontSize: 11),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
         bottomNavigationBar: GlassBottomNav(
           index: _index,
           onTap: (i) => setState(() => _index = i),
