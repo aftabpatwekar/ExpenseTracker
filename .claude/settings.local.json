@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la /Users/dev/expenseTracker-clone 2>&1 | head -40)"
+    ]
+  }
+}
