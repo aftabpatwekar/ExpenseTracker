@@ -1,0 +1,51 @@
+# Codemagic CI/CD for Expense Tracker (Flutter -> iOS)  —  FREE path (no Apple Developer fee)
+# Docs: https://docs.codemagic.io/yaml-quick-start/building-a-flutter-app/
+#
+# Strategy: Codemagic cloud-builds an UNSIGNED IPA (no Apple account, no local Xcode needed).
+# You then sign + install it onto your physical iPhone with Sideloadly/AltStore using a FREE
+# Apple ID (7-day expiry, re-sign weekly). See SIDELOADLY.md.
+#
+# `.env` is gitignored (holds the Supabase anon key) but is a bundled Flutter asset the app
+# needs at runtime, so we recreate it from Codemagic env vars before building.
+#   In the Codemagic UI create an environment variable GROUP named "supabase" with:
+#     SUPABASE_URL       = https://dcbgcintizqbsczncmqe.supabase.co
+#     SUPABASE_ANON_KEY  = <your anon public key>   (tick "Secure")
+
+workflows:
+  ios-unsigned-ipa:
+    name: iOS unsigned IPA (for Sideloadly)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      groups:
+        - supabase
+    scripts:
+      - name: Recreate .env from secure vars
+        script: |
+          cat > "$CM_BUILD_DIR/.env" <<EOF
+          SUPABASE_URL=$SUPABASE_URL
+          SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
+          EOF
+      - name: Flutter pub get
+        script: flutter pub get
+      - name: Flutter analyze
+        script: flutter analyze
+      - name: Build unsigned .app
+        script: flutter build ios --release --no-codesign
+      - name: Package .app into an .ipa (Payload/ + zip)
+        script: |
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          cp -r Runner.app Payload/
+          zip -r9 "$CM_BUILD_DIR/ExpenseTracker.ipa" Payload >/dev/null
+          echo "Built: $CM_BUILD_DIR/ExpenseTracker.ipa"
+    artifacts:
+      - ExpenseTracker.ipa
+    # Optional: email the IPA to yourself when the build finishes so you can grab it on the Mac.
+    # publishing:
+    #   email:
+    #     recipients:
+    #       - aftab.patwekar@smarte.pro
