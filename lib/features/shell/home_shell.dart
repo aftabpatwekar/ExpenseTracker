@@ -1,9 +1,7 @@
-import 'dart:async';
-
-import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/deep_link.dart';
 import '../../core/glass.dart';
 import '../account/account_screen.dart';
 import '../analysis/analysis_screen.dart';
@@ -21,8 +19,7 @@ class HomeShell extends ConsumerStatefulWidget {
 
 class _HomeShellState extends ConsumerState<HomeShell> {
   int _index = 0;
-  final AppLinks _appLinks = AppLinks();
-  StreamSubscription<Uri>? _linkSub;
+  bool _addSheetOpen = false;
 
   static const List<Widget> _tabs = [
     HomeTab(),
@@ -34,30 +31,30 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   @override
   void initState() {
     super.initState();
-    // Deep link: expensetracker://add  → jump straight to voice-add.
-    // Used by the Android "Speak expense" shortcut and (later) iOS Back Tap.
-    _linkSub = _appLinks.uriLinkStream.listen(_handleLink);
-    _appLinks.getInitialLink().then((uri) {
-      if (uri != null) _handleLink(uri);
+    // Cold start: a deep link may already be pending before this mounted.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && ref.read(pendingAddProvider)) _openVoiceAdd();
     });
   }
 
-  @override
-  void dispose() {
-    _linkSub?.cancel();
-    super.dispose();
-  }
-
-  void _handleLink(Uri uri) {
-    if (uri.host == 'add' || uri.pathSegments.contains('add')) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) showAddExpenseSheet(context, startVoice: true);
-      });
-    }
+  /// Open the voice-add sheet once, clearing the pending flag. Guards against
+  /// opening two sheets if the flag toggles while one is already up.
+  void _openVoiceAdd() {
+    if (_addSheetOpen || !mounted) return;
+    ref.read(pendingAddProvider.notifier).set(false);
+    _addSheetOpen = true;
+    showAddExpenseSheet(context, startVoice: true)
+        .whenComplete(() => _addSheetOpen = false);
   }
 
   @override
   Widget build(BuildContext context) {
+    // Warm start: link arrives (flag flips true) while the app is already open.
+    ref.listen<bool>(pendingAddProvider, (_, next) {
+      if (next) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _openVoiceAdd());
+      }
+    });
     return AppBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
