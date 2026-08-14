@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="speak_expense"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/speak_expense_short"
+        android:shortcutLongLabel="@string/speak_expense_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="expensetracker://add"
+            android:targetPackage="com.aftabpatwekar.expense_tracker"
+            android:targetClass="com.aftabpatwekar.expense_tracker.MainActivity" />
+    </shortcut>
+</shortcuts>
