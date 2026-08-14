@@ -11,6 +11,7 @@ import '../../data/expense_repository.dart';
 import '../../domain/models/expense.dart';
 import '../../domain/models/expense_category.dart';
 import '../entry/expense_actions.dart';
+import '../txns/transactions_screen.dart';
 import 'dashboard_charts.dart';
 
 class HomeTab extends ConsumerWidget {
@@ -108,9 +109,20 @@ class _Content extends StatelessWidget {
               .fadeIn(delay: 200.ms, duration: 350.ms)
               .slideY(begin: 0.1, end: 0),
         const SizedBox(height: 22),
-        Text('Recent',
-            style: theme.textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.w700)),
+        Row(
+          children: [
+            Text('Recent',
+                style: theme.textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w700)),
+            const Spacer(),
+            if (expenses.isNotEmpty)
+              TextButton(
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const TransactionsScreen())),
+                child: const Text('See all'),
+              ),
+          ],
+        ),
         const SizedBox(height: 10),
         if (expenses.isEmpty)
           const _EmptyTx()
