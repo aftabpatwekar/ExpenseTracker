@@ -35,6 +35,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
   final SpeechToText _speech = SpeechToText();
 
   String? _categoryId;
+  String _type = 'expense';
   DateTime _date = DateTime.now();
   bool _saving = false;
   bool _listening = false;
@@ -155,6 +156,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
             note: _note.text.trim(),
             rawText: _quick.text.trim().isEmpty ? null : _quick.text.trim(),
             spentAt: _date,
+            type: _type,
           );
       ref.invalidate(expensesProvider);
       if (mounted) Navigator.of(context).pop();
@@ -187,8 +189,19 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Add expense', style: theme.textTheme.titleLarge),
-              const SizedBox(height: 4),
+              Text(_type == 'income' ? 'Add income' : 'Add expense',
+                  style: theme.textTheme.titleLarge),
+              const SizedBox(height: 12),
+              SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(value: 'expense', label: Text('Expense')),
+                  ButtonSegment(value: 'income', label: Text('Income')),
+                ],
+                selected: {_type},
+                showSelectedIcon: false,
+                onSelectionChanged: (s) => setState(() => _type = s.first),
+              ),
+              const SizedBox(height: 8),
               Text(
                 _listening
                     ? 'Listening… say something like “250 groceries veggies”'

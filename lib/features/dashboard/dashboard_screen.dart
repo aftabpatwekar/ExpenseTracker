@@ -56,20 +56,18 @@ class _Content extends StatelessWidget {
   final Map<String, ExpenseCategory> catMap;
   const _Content({required this.expenses, required this.catMap});
 
-  static bool _sameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final now = DateTime.now();
-    final monthExpenses = expenses
+    final monthTx = expenses
         .where((e) => e.spentAt.year == now.year && e.spentAt.month == now.month)
         .toList();
-    final monthTotal = monthExpenses.fold<double>(0, (s, e) => s + e.amount);
-    final todayTotal = expenses
-        .where((e) => _sameDay(e.spentAt, now))
-        .fold<double>(0, (s, e) => s + e.amount);
+    final monthExpenses = monthTx.where((e) => e.isExpense).toList();
+    final spending = monthExpenses.fold<double>(0, (s, e) => s + e.amount);
+    final income =
+        monthTx.where((e) => e.isIncome).fold<double>(0, (s, e) => s + e.amount);
+    final expenseTx = expenses.where((e) => e.isExpense).toList();
     final recent = expenses.length > 12 ? expenses.sublist(0, 12) : expenses;
 
     return ListView(
@@ -82,14 +80,13 @@ class _Content extends StatelessWidget {
             Text('Welcome back',
                 style: theme.textTheme.bodyMedium
                     ?.copyWith(color: theme.colorScheme.outline)),
-            Text('Your expenses',
+            Text('Overview',
                 style: theme.textTheme.headlineSmall
                     ?.copyWith(fontWeight: FontWeight.w700)),
           ],
         ),
         const SizedBox(height: 16),
-        _HeroCard(
-                total: monthTotal, today: todayTotal, count: monthExpenses.length)
+        _CashFlowCard(spending: spending, income: income)
             .animate()
             .fadeIn(duration: 350.ms)
             .slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
@@ -103,8 +100,8 @@ class _Content extends StatelessWidget {
               .slideY(begin: 0.1, end: 0),
           const SizedBox(height: 14),
         ],
-        if (expenses.isNotEmpty)
-          GlassCard(child: MonthlyTrend(expenses: expenses))
+        if (expenseTx.isNotEmpty)
+          GlassCard(child: MonthlyTrend(expenses: expenseTx))
               .animate()
               .fadeIn(delay: 200.ms, duration: 350.ms)
               .slideY(begin: 0.1, end: 0),
@@ -149,17 +146,16 @@ class _Content extends StatelessWidget {
   }
 }
 
-class _HeroCard extends StatelessWidget {
-  final double total;
-  final double today;
-  final int count;
-  const _HeroCard(
-      {required this.total, required this.today, required this.count});
+class _CashFlowCard extends StatelessWidget {
+  final double spending;
+  final double income;
+  const _CashFlowCard({required this.spending, required this.income});
 
   @override
   Widget build(BuildContext context) {
+    final net = income - spending;
     return Container(
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: kAccentGradient,
         borderRadius: BorderRadius.circular(24),
@@ -173,57 +169,88 @@ class _HeroCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Spent this month',
-              style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 6),
-          Text(formatMoney(total),
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 40,
-                  fontWeight: FontWeight.w800,
-                  height: 1.05)),
-          const SizedBox(height: 16),
           Row(
             children: [
-              _pill(Icons.today_rounded, 'Today', formatMoney(today)),
-              const SizedBox(width: 10),
-              _pill(Icons.receipt_long_rounded, 'Entries', '$count'),
+              const Text('Cash Flow',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700)),
+              const Spacer(),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(38),
+                    borderRadius: BorderRadius.circular(20)),
+                child: const Text('This month',
+                    style: TextStyle(color: Colors.white, fontSize: 12)),
+              ),
             ],
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                  child: _flow(
+                      'Spending', spending, const Color(0xFFFFB1B1), false)),
+              Expanded(
+                  child:
+                      _flow('Income', income, const Color(0xFFA7F3C0), true)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+                color: Colors.white.withAlpha(30),
+                borderRadius: BorderRadius.circular(14)),
+            child: Row(
+              children: [
+                const Text('Net Balance',
+                    style: TextStyle(color: Colors.white70)),
+                const Spacer(),
+                Text(formatMoney(net),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16)),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _pill(IconData icon, String label, String value) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white.withAlpha(38),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Row(
+  Widget _flow(String label, double amount, Color dot, bool alignEnd) {
+    return Column(
+      crossAxisAlignment:
+          alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: Colors.white, size: 18),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(label,
-                    style:
-                        const TextStyle(color: Colors.white70, fontSize: 11)),
-                Text(value,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13)),
-              ],
-            ),
+            Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(color: dot, shape: BoxShape.circle)),
+            const SizedBox(width: 6),
+            Text(label.toUpperCase(),
+                style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.3)),
           ],
         ),
-      ),
+        const SizedBox(height: 4),
+        Text(formatMoney(amount),
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.w800)),
+      ],
     );
   }
 }
@@ -270,9 +297,11 @@ class _TxRow extends StatelessWidget {
               ],
             ),
           ),
-          Text(formatMoney(expense.amount),
-              style: theme.textTheme.bodyLarge
-                  ?.copyWith(fontWeight: FontWeight.w800)),
+          Text(
+              '${expense.isIncome ? '+' : ''}${formatMoney(expense.amount)}',
+              style: theme.textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: expense.isIncome ? const Color(0xFF1FB56B) : null)),
         ],
       ),
       ),

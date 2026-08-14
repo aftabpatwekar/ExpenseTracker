@@ -1,4 +1,5 @@
-/// A single expense. Mirrors the `expenses` table in Supabase.
+/// A single transaction. Mirrors the `expenses` table in Supabase.
+/// [type] is 'expense' | 'income' | 'transfer'.
 class Expense {
   final String id;
   final String? categoryId;
@@ -7,6 +8,7 @@ class Expense {
   final String note;
   final String? rawText; // original voice/typed input, kept for audit
   final DateTime spentAt; // local time
+  final String type;
 
   const Expense({
     required this.id,
@@ -16,7 +18,11 @@ class Expense {
     required this.note,
     required this.rawText,
     required this.spentAt,
+    this.type = 'expense',
   });
+
+  bool get isIncome => type == 'income';
+  bool get isExpense => type == 'expense';
 
   // Postgres numeric can arrive as num or String; be tolerant.
   static double _toDouble(dynamic v) =>
@@ -30,5 +36,6 @@ class Expense {
         note: (m['note'] as String?) ?? '',
         rawText: m['raw_text'] as String?,
         spentAt: DateTime.parse(m['spent_at'] as String).toLocal(),
+        type: (m['type'] as String?) ?? 'expense',
       );
 }
