@@ -1,0 +1,75 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/format.dart';
+import '../../data/expense_repository.dart';
+import '../../domain/models/expense.dart';
+
+/// Tap a transaction → this sheet. Delete is a *soft* delete with an Undo.
+Future<void> showExpenseActions(BuildContext context, Expense expense) {
+  return showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (_) => _ExpenseActionsSheet(expense: expense),
+  );
+}
+
+class _ExpenseActionsSheet extends ConsumerWidget {
+  final Expense expense;
+  const _ExpenseActionsSheet({required this.expense});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(expense.note.isEmpty ? 'Expense' : expense.note,
+                style: theme.textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 4),
+            Text('${formatMoney(expense.amount)} · ${formatDay(expense.spentAt)}',
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: theme.colorScheme.outline)),
+            const SizedBox(height: 20),
+            FilledButton.tonalIcon(
+              style: FilledButton.styleFrom(
+                backgroundColor: theme.colorScheme.errorContainer,
+                foregroundColor: theme.colorScheme.onErrorContainer,
+                minimumSize: const Size.fromHeight(48),
+              ),
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('Delete'),
+              onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                final nav = Navigator.of(context);
+                final repo = ref.read(expenseRepositoryProvider);
+                await repo.softDelete(expense.id);
+                ref.invalidate(expensesProvider);
+                nav.pop();
+                messenger.showSnackBar(SnackBar(
+                  content: const Text('Expense deleted'),
+                  action: SnackBarAction(
+                    label: 'Undo',
+                    onPressed: () async {
+                      await repo.restore(expense.id);
+                      ref.invalidate(expensesProvider);
+                    },
+                  ),
+                ));
+              },
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel')),
+          ],
+        ),
+      ),
+    );
+  }
+}

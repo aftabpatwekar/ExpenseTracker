@@ -1,0 +1,41 @@
+name: Daily database backup
+
+# Backs up the whole Supabase Postgres database once a day and stores the dump
+# as a downloadable GitHub artifact. Requires one repo secret: SUPABASE_DB_URL
+# (Supabase → Project Settings → Database → Connection string → URI, incl. password).
+
+on:
+  schedule:
+    - cron: "17 2 * * *" # 02:17 UTC daily
+  workflow_dispatch: {} # also runnable on demand from the Actions tab
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Dump database
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::SUPABASE_DB_URL secret is not set."; exit 1
+          fi
+          ts=$(date -u +%Y%m%d-%H%M%S)
+          pg_dump "$SUPABASE_DB_URL" --no-owner --no-privileges \
+            | gzip > "supabase-backup-$ts.sql.gz"
+          echo "BACKUP_FILE=supabase-backup-$ts.sql.gz" >> "$GITHUB_ENV"
+          ls -lh "supabase-backup-$ts.sql.gz"
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: ${{ env.BACKUP_FILE }}
+          retention-days: 90

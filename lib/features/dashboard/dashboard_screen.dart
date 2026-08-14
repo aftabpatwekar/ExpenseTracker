@@ -10,6 +10,7 @@ import '../../data/category_repository.dart';
 import '../../data/expense_repository.dart';
 import '../../domain/models/expense.dart';
 import '../../domain/models/expense_category.dart';
+import '../entry/expense_actions.dart';
 import 'dashboard_charts.dart';
 
 class HomeTab extends ConsumerWidget {
@@ -224,9 +225,12 @@ class _TxRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final color = hexColor(cat?.color ?? '#2a78d6');
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => showExpenseActions(context, expense),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
         children: [
           Container(
             width: 40,
@@ -258,6 +262,7 @@ class _TxRow extends StatelessWidget {
               style: theme.textTheme.bodyLarge
                   ?.copyWith(fontWeight: FontWeight.w800)),
         ],
+      ),
       ),
     );
   }
