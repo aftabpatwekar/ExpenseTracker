@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 import '../../core/format.dart';
+import '../../data/account_repository.dart';
 import '../../data/category_repository.dart';
 import '../../data/expense_repository.dart';
+import '../../domain/models/account.dart';
 import '../../domain/models/expense_category.dart';
 import '../../domain/services/expense_parser.dart';
 
@@ -36,6 +38,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
 
   String? _categoryId;
   String _type = 'expense';
+  String? _accountId;
   DateTime _date = DateTime.now();
   bool _saving = false;
   bool _listening = false;
@@ -139,7 +142,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
     if (picked != null) setState(() => _date = picked);
   }
 
-  Future<void> _save(List<ExpenseCategory> cats) async {
+  Future<void> _save(List<ExpenseCategory> cats, String? accountId) async {
     final amt = double.tryParse(_amount.text.trim()) ?? 0;
     if (amt <= 0) {
       setState(() => _error = 'Enter an amount greater than 0');
@@ -157,6 +160,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
             rawText: _quick.text.trim().isEmpty ? null : _quick.text.trim(),
             spentAt: _date,
             type: _type,
+            accountId: accountId,
           );
       ref.invalidate(expensesProvider);
       if (mounted) Navigator.of(context).pop();
@@ -174,6 +178,10 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final catsAsync = ref.watch(categoriesProvider);
+    final accounts =
+        ref.watch(accountsProvider).asData?.value ?? const <Account>[];
+    final selectedAccount =
+        _accountId ?? (accounts.isNotEmpty ? accounts.first.id : null);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Padding(
@@ -283,13 +291,32 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
                   );
                 }).toList(),
               ),
+              if (accounts.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Account', style: theme.textTheme.labelLarge),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: accounts.map((a) {
+                    return ChoiceChip(
+                      label: Text('${a.icon} ${a.name}'),
+                      selected: a.id == selectedAccount,
+                      onSelected: (_) => setState(() => _accountId = a.id),
+                    );
+                  }).toList(),
+                ),
+              ],
               if (_error != null) ...[
                 const SizedBox(height: 14),
                 Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
               ],
               const SizedBox(height: 20),
               FilledButton(
-                onPressed: _saving ? null : () => _save(cats),
+                onPressed: _saving ? null : () => _save(cats, selectedAccount),
                 style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14)),
                 child: _saving

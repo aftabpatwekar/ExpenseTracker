@@ -38,7 +38,7 @@ class GlassBottomNav extends StatelessWidget {
                   _item(context, Icons.home_rounded, 'Home', 0),
                   _item(context, Icons.pie_chart_rounded, 'Stats', 1),
                   Expanded(child: Center(child: _addButton())),
-                  _item(context, Icons.person_rounded, 'Account', 2),
+                  _item(context, Icons.account_balance_wallet_rounded, 'Accounts', 2),
                   _item(context, Icons.more_horiz_rounded, 'More', 3),
                 ],
               ),

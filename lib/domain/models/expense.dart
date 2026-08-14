@@ -9,6 +9,7 @@ class Expense {
   final String? rawText; // original voice/typed input, kept for audit
   final DateTime spentAt; // local time
   final String type;
+  final String? accountId;
 
   const Expense({
     required this.id,
@@ -19,6 +20,7 @@ class Expense {
     required this.rawText,
     required this.spentAt,
     this.type = 'expense',
+    this.accountId,
   });
 
   bool get isIncome => type == 'income';
@@ -37,5 +39,6 @@ class Expense {
         rawText: m['raw_text'] as String?,
         spentAt: DateTime.parse(m['spent_at'] as String).toLocal(),
         type: (m['type'] as String?) ?? 'expense',
+        accountId: m['account_id'] as String?,
       );
 }

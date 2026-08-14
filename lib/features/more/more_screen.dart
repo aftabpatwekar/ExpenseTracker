@@ -5,11 +5,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/app_prefs.dart';
 import '../../core/glass.dart';
+import '../../core/theme.dart';
 import '../../data/category_repository.dart';
 import '../../data/expense_repository.dart';
 import '../../domain/models/expense.dart';
 import '../../domain/models/expense_category.dart';
+import '../auth/auth_repository.dart';
 import '../budget/budgets_screen.dart';
 import '../category/categories_screen.dart';
 
@@ -19,6 +22,8 @@ class MoreScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final email = ref.watch(authRepositoryProvider).currentUser?.email ?? 'you';
+    final mode = ref.watch(themeModeProvider);
     return SafeArea(
       bottom: false,
       child: ListView(
@@ -30,6 +35,46 @@ class MoreScreen extends ConsumerWidget {
                 style: theme.textTheme.headlineSmall
                     ?.copyWith(fontWeight: FontWeight.w700)),
           ),
+          GlassCard(
+            child: Row(
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: const BoxDecoration(
+                      gradient: kAccentGradient, shape: BoxShape.circle),
+                  child: Center(
+                      child: Text(
+                          email.isNotEmpty ? email[0].toUpperCase() : '?',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700))),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Signed in',
+                          style: theme.textTheme.bodySmall
+                              ?.copyWith(color: theme.colorScheme.outline)),
+                      Text(email,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => ref.read(authRepositoryProvider).signOut(),
+                  icon: const Icon(Icons.logout),
+                  tooltip: 'Sign out',
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
           GlassCard(
             padding: EdgeInsets.zero,
             child: Column(
@@ -47,6 +92,9 @@ class MoreScreen extends ConsumerWidget {
                     'Edit names & keywords',
                     () => Navigator.of(context).push(MaterialPageRoute(
                         builder: (_) => const CategoriesScreen()))),
+                const Divider(height: 1),
+                _tile(context, Icons.brightness_6_outlined, 'Appearance',
+                    themeModeLabel(mode), () => _pickTheme(context, ref, mode)),
                 const Divider(height: 1),
                 _tile(context, Icons.info_outline, 'About',
                     'Expense Tracker · v1.0', null),
@@ -66,6 +114,32 @@ class MoreScreen extends ConsumerWidget {
       subtitle: Text(subtitle),
       trailing: onTap != null ? const Icon(Icons.chevron_right) : null,
       onTap: onTap,
+    );
+  }
+
+  Future<void> _pickTheme(
+      BuildContext context, WidgetRef ref, ThemeMode current) {
+    return showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final m in ThemeMode.values)
+              ListTile(
+                leading: Icon(m == current
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_off),
+                title: Text(themeModeLabel(m)),
+                onTap: () {
+                  ref.read(themeModeProvider.notifier).set(m);
+                  Navigator.of(ctx).pop();
+                },
+              ),
+          ],
+        ),
+      ),
     );
   }
 

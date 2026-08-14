@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/deep_link.dart';
 import '../../core/glass.dart';
-import '../account/account_screen.dart';
+import '../accounts/accounts_screen.dart';
 import '../analysis/analysis_screen.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../entry/add_expense_sheet.dart';
@@ -24,7 +24,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   static const List<Widget> _tabs = [
     HomeTab(),
     AnalysisScreen(),
-    AccountScreen(),
+    AccountsScreen(),
     MoreScreen(),
   ];
 
