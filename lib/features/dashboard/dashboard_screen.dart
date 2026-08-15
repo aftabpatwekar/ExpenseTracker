@@ -9,6 +9,7 @@ import '../../core/hex.dart';
 import '../../core/theme.dart';
 import '../../data/category_repository.dart';
 import '../../data/expense_repository.dart';
+import '../../data/profile_repository.dart';
 import '../../domain/models/expense.dart';
 import '../../domain/models/expense_category.dart';
 import '../entry/add_expense_sheet.dart';
@@ -198,7 +199,10 @@ class _Content extends ConsumerWidget {
     final expenseTx = expenses.where((e) => e.isExpense).toList();
     final recent = expenses.length > 12 ? expenses.sublist(0, 12) : expenses;
 
-    final name = _displayName();
+    final profileName = ref.watch(profileProvider).asData?.value?.displayName;
+    final name = (profileName != null && profileName.trim().isNotEmpty)
+        ? profileName.trim()
+        : _displayName();
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),

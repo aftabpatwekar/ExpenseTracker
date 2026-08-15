@@ -15,8 +15,10 @@ import '../../domain/models/expense_category.dart';
 import '../auth/auth_repository.dart';
 import '../budget/budgets_screen.dart';
 import '../calendar/calendar_screen.dart';
+import '../../data/profile_repository.dart';
 import '../category/categories_screen.dart';
 import '../groups/groups_screen.dart';
+import '../profile/profile_screen.dart';
 import '../recurring/scheduled_screen.dart';
 import '../reports/reports_screen.dart';
 import 'excel_export.dart';
@@ -29,6 +31,11 @@ class MoreScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final email = ref.watch(authRepositoryProvider).currentUser?.email ?? 'you';
+    final profile = ref.watch(profileProvider).asData?.value;
+    final name = (profile?.displayName?.trim().isNotEmpty ?? false)
+        ? profile!.displayName!.trim()
+        : email;
+    final avatarUrl = profile?.avatarUrl;
     final mode = ref.watch(themeModeProvider);
     return SafeArea(
       bottom: false,
@@ -42,33 +49,43 @@ class MoreScreen extends ConsumerWidget {
                     ?.copyWith(fontWeight: FontWeight.w700)),
           ),
           GlassCard(
+            onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ProfileScreen())),
             child: Row(
               children: [
                 Container(
                   width: 52,
                   height: 52,
-                  decoration: const BoxDecoration(
-                      gradient: kAccentGradient, shape: BoxShape.circle),
-                  child: Center(
-                      child: Text(
-                          email.isNotEmpty ? email[0].toUpperCase() : '?',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w700))),
+                  decoration: BoxDecoration(
+                    gradient: kAccentGradient,
+                    shape: BoxShape.circle,
+                    image: avatarUrl != null
+                        ? DecorationImage(
+                            image: NetworkImage(avatarUrl), fit: BoxFit.cover)
+                        : null,
+                  ),
+                  child: avatarUrl != null
+                      ? null
+                      : Center(
+                          child: Text(
+                              name.isNotEmpty ? name[0].toUpperCase() : '?',
+                              style: const TextStyle(
+                                  color: kInk,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800))),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Signed in',
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(color: theme.colorScheme.outline)),
-                      Text(email,
+                      Text(name,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.titleSmall
                               ?.copyWith(fontWeight: FontWeight.w700)),
+                      Text('View & edit profile',
+                          style: theme.textTheme.bodySmall
+                              ?.copyWith(color: theme.colorScheme.outline)),
                     ],
                   ),
                 ),
