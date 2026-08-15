@@ -14,6 +14,7 @@ import '../../domain/models/expense.dart';
 import '../../domain/models/expense_category.dart';
 import '../auth/auth_repository.dart';
 import '../budget/budgets_screen.dart';
+import '../calendar/calendar_screen.dart';
 import '../category/categories_screen.dart';
 import '../recurring/scheduled_screen.dart';
 
@@ -98,6 +99,11 @@ class MoreScreen extends ConsumerWidget {
                     'Recurring transactions',
                     () => Navigator.of(context).push(MaterialPageRoute(
                         builder: (_) => const ScheduledScreen()))),
+                const Divider(height: 1),
+                _tile(context, Icons.calendar_month_outlined, 'Calendar',
+                    'Transactions by day',
+                    () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => const CalendarScreen()))),
                 const Divider(height: 1),
                 _tile(context, Icons.brightness_6_outlined, 'Appearance',
                     themeModeLabel(mode), () => _pickTheme(context, ref, mode)),
