@@ -18,15 +18,15 @@ class AppBackground extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: dark
-              ? const [Color(0xFF0C0C10), Color(0xFF090909), Color(0xFF060606)]
-              : const [Color(0xFFEFF1FA), Color(0xFFF6F7FE), Color(0xFFEFF1FA)],
+              ? const [Color(0xFF0B0D12), Color(0xFF090A0D), Color(0xFF060709)]
+              : const [Color(0xFFFDFAF3), Color(0xFFFBF6EC), Color(0xFFF6EFDF)],
         ),
       ),
       child: Stack(
         children: [
-          // A single soft glow at the top — subtle depth, still reads black.
-          _blob(const Alignment(0.0, -1.15), kAccent, dark ? 46 : 40, 340),
-          _blob(const Alignment(1.2, -0.5), kAccentBlue, dark ? 30 : 34, 240),
+          // Soft marigold + ink glow at the top — subtle depth, still reads black.
+          _blob(const Alignment(0.0, -1.15), kMarigold, dark ? 40 : 34, 340),
+          _blob(const Alignment(1.2, -0.5), kInkLight, dark ? 34 : 26, 240),
           Positioned.fill(child: child),
         ],
       ),
@@ -173,10 +173,10 @@ class GlassSegmented extends StatelessWidget {
                               duration: const Duration(milliseconds: 200),
                               style: theme.textTheme.labelLarge!.copyWith(
                                 color: i == selected
-                                    ? Colors.white
+                                    ? kInk
                                     : theme.colorScheme.outline,
                                 fontWeight: i == selected
-                                    ? FontWeight.w700
+                                    ? FontWeight.w800
                                     : FontWeight.w600,
                               ),
                               child: Text(labels[i]),

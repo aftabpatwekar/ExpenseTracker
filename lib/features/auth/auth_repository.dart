@@ -28,6 +28,17 @@ class AuthRepository {
 
   Future<void> signOut() => _client.auth.signOut();
 
+  /// OAuth sign-in via the system browser. Requires the provider to be enabled
+  /// in Supabase (Authentication → Providers) and the redirect URL
+  /// `expensetracker://login-callback` allow-listed. See docs/SOCIAL_LOGIN.md.
+  Future<bool> signInWithProvider(OAuthProvider provider) {
+    return _client.auth.signInWithOAuth(
+      provider,
+      redirectTo: 'expensetracker://login-callback',
+      authScreenLaunchMode: LaunchMode.externalApplication,
+    );
+  }
+
   Future<void> resetPassword(String email) {
     return _client.auth.resetPasswordForEmail(email.trim(),
         redirectTo: 'expensetracker://reset-password');

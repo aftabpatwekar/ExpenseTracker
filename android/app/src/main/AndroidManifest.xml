@@ -8,7 +8,7 @@
     <uses-permission android:name="android.permission.CAMERA"/>
 
     <application
-        android:label="expense_tracker"
+        android:label="Molbhav"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -38,6 +38,13 @@
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="expensetracker" android:host="add"/>
+            </intent-filter>
+            <!-- OAuth (Google/Apple) redirect callback -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="expensetracker" android:host="login-callback"/>
             </intent-filter>
             <!-- Long-press launcher icon → "Speak expense" -->
             <meta-data

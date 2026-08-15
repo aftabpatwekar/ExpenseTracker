@@ -311,12 +311,16 @@ class _CashFlowCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: kAccentGradient,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [kInkLight, kInk],
+        ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-              color: kAccent.withAlpha(90),
-              blurRadius: 26,
+              color: kInk.withAlpha(120),
+              blurRadius: 24,
               offset: const Offset(0, 12)),
         ],
       ),

@@ -16,7 +16,7 @@ class ExpenseApp extends ConsumerWidget {
     final router = ref.watch(routerProvider);
     final mode = ref.watch(themeModeProvider);
     return MaterialApp.router(
-      title: 'Expense Tracker',
+      title: 'Molbhav',
       debugShowCheckedModeBanner: false,
       themeMode: mode,
       theme: buildTheme(Brightness.light),

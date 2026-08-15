@@ -93,7 +93,7 @@ class GlassBottomNav extends StatelessWidget {
                 offset: const Offset(0, 6)),
           ],
         ),
-        child: const Icon(Icons.add, color: Colors.white, size: 28),
+        child: const Icon(Icons.add, color: kInk, size: 28),
       ),
     );
   }

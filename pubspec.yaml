@@ -67,6 +67,16 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+# App launcher icon (Molbhav ink mark). Regenerate with:
+#   dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/branding/icon.png"
+  remove_alpha_ios: true
+  min_sdk_android: 21
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -82,6 +92,7 @@ flutter:
   # The .env file (Supabase URL + anon key) is bundled so flutter_dotenv can read it.
   assets:
     - .env
+    - assets/branding/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

@@ -1,23 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Brand accents (premium fintech: blue → violet, with a gold highlight).
-const Color kAccent = Color(0xFF6C5CE7); // violet (seed)
-const Color kAccentBlue = Color(0xFF4F7DF9);
-const Color kAccentViolet = Color(0xFF8E5CF7);
-const Color kGold = Color(0xFFF6C445);
+// ============================================================================
+//  Molbhav brand system
+//  Bazaar Ink (deep indigo) · Marigold (gold) · Chuna Cream · Sindoor (alert)
+// ============================================================================
+const Color kInk = Color(0xFF12233F); // Bazaar Ink — deepest brand navy
+const Color kInkLight = Color(0xFF24406B); // Ink Light
+const Color kMarigold = Color(0xFFF2A20C); // primary accent / button fill
+const Color kMarigoldLight = Color(0xFFFFC24A);
+const Color kCream = Color(0xFFFBF6EC); // Chuna Cream — light background
+const Color kSindoor = Color(0xFFC1502E); // alert / spend
 
-// Semantic money colors, tuned for a near-black surface.
-const Color kSpend = Color(0xFFFF6B6B);
-const Color kIncome = Color(0xFF3BD68A);
+// Legacy aliases kept so existing widgets stay on-brand without churn.
+const Color kAccent = kMarigold;
+const Color kAccentBlue = kMarigold;
+const Color kAccentViolet = kMarigoldLight;
+const Color kGold = kMarigoldLight;
 
-// --- Dark palette: near-black, only a whisper of cool tint (not navy). ---
-const Color kDarkBg = Color(0xFF0A0A0C); // app background
-const Color kDarkSurface = Color(0xFF141416); // cards / sheets
-const Color kDarkSurface2 = Color(0xFF1D1D21); // raised chips / inputs
+// Semantic money colors.
+const Color kSpend = kSindoor;
+const Color kIncome = Color(0xFF1FA971);
 
-// --- Light palette. ---
-const Color kLightBg = Color(0xFFF4F5F9);
+// --- Dark palette: near-black with a faint ink warmth (reads black, not navy). ---
+const Color kDarkBg = Color(0xFF090A0D);
+const Color kDarkSurface = Color(0xFF141822);
+const Color kDarkSurface2 = Color(0xFF1E2430);
+
+// --- Light palette: cream. ---
+const Color kLightBg = kCream;
 const Color kLightSurface = Color(0xFFFFFFFF);
 
 /// Spacing + radius tokens — one scale used everywhere for consistency.
@@ -37,37 +48,45 @@ class AppRadius {
   static const double pill = 999;
 }
 
-/// Gradient used on the hero total card, the center add button, etc.
+/// Brand gradient — marigold. Put INK (kInk) text/icons on top (AAA contrast).
 const LinearGradient kAccentGradient = LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
-  colors: [kAccentBlue, kAccent, kAccentViolet],
+  colors: [kMarigoldLight, kMarigold],
 );
 
 ThemeData buildTheme(Brightness brightness) {
   final dark = brightness == Brightness.dark;
   final scheme = ColorScheme.fromSeed(
-    seedColor: kAccent,
+    seedColor: kMarigold,
     brightness: brightness,
   ).copyWith(
-    surface: dark ? kDarkBg : kLightBg,
+    primary: kMarigold,
+    onPrimary: kInk,
+    secondary: kInkLight,
+    onSecondary: Colors.white,
+    error: kSindoor,
+    onError: Colors.white,
+    surface: dark ? kDarkBg : kCream,
+    onSurface: dark ? const Color(0xFFF3EFE6) : kInk,
     surfaceContainer: dark ? kDarkSurface : kLightSurface,
-    surfaceContainerHigh: dark ? kDarkSurface2 : const Color(0xFFEDEEF4),
-    outline: dark ? const Color(0xFF8A8A93) : const Color(0xFF6B6B75),
-    outlineVariant: dark ? const Color(0xFF2A2A30) : const Color(0xFFDADBE3),
+    surfaceContainerHigh: dark ? kDarkSurface2 : const Color(0xFFF1E9D9),
+    surfaceContainerHighest: dark ? kDarkSurface2 : const Color(0xFFEDE4D2),
+    outline: dark ? const Color(0xFF8A93A6) : const Color(0xFF6B7385),
+    outlineVariant: dark ? const Color(0xFF2A3140) : const Color(0xFFE2D9C6),
   );
   final base = ThemeData(
     brightness: brightness,
     useMaterial3: true,
     colorScheme: scheme,
-    scaffoldBackgroundColor: dark ? kDarkBg : kLightBg,
+    scaffoldBackgroundColor: dark ? kDarkBg : kCream,
     splashFactory: InkSparkle.splashFactory,
   );
 
-  // Plus Jakarta Sans — clean, modern, premium at every size.
-  final textTheme = GoogleFonts.plusJakartaSansTextTheme(base.textTheme).apply(
-    bodyColor: dark ? Colors.white : const Color(0xFF14141A),
-    displayColor: dark ? Colors.white : const Color(0xFF14141A),
+  // Inter — the Molbhav brand typeface.
+  final textTheme = GoogleFonts.interTextTheme(base.textTheme).apply(
+    bodyColor: dark ? const Color(0xFFF3EFE6) : kInk,
+    displayColor: dark ? const Color(0xFFF3EFE6) : kInk,
   );
 
   return base.copyWith(
@@ -84,27 +103,24 @@ ThemeData buildTheme(Brightness brightness) {
       scrolledUnderElevation: 0,
       centerTitle: false,
     ),
-    dividerTheme: DividerThemeData(
-      color: scheme.outlineVariant,
-      thickness: 1,
-    ),
+    dividerTheme: DividerThemeData(color: scheme.outlineVariant, thickness: 1),
     chipTheme: ChipThemeData(
-      backgroundColor: dark ? const Color(0xFF26262C) : const Color(0xFFECEDF4),
-      selectedColor: kAccent,
+      backgroundColor: dark ? const Color(0xFF262D3A) : const Color(0xFFF1E9D9),
+      selectedColor: kMarigold,
       side: BorderSide(
-          color: dark ? Colors.white.withAlpha(22) : Colors.black.withAlpha(12)),
+          color: dark ? Colors.white.withAlpha(22) : Colors.black.withAlpha(14)),
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.pill)),
       labelStyle: TextStyle(
-          color: dark ? Colors.white : const Color(0xFF14141A),
+          color: dark ? const Color(0xFFF3EFE6) : kInk,
           fontWeight: FontWeight.w600),
-      secondaryLabelStyle: const TextStyle(
-          color: Colors.white, fontWeight: FontWeight.w700),
+      secondaryLabelStyle:
+          const TextStyle(color: kInk, fontWeight: FontWeight.w700),
       showCheckmark: false,
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: dark ? kDarkSurface2 : const Color(0xFFECEDF4),
+      fillColor: dark ? const Color(0xFF262D3A) : const Color(0xFFF1E9D9),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppRadius.sm),
         borderSide: BorderSide(color: scheme.outlineVariant),
@@ -115,7 +131,7 @@ ThemeData buildTheme(Brightness brightness) {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppRadius.sm),
-        borderSide: const BorderSide(color: kAccent, width: 1.6),
+        borderSide: const BorderSide(color: kMarigold, width: 1.6),
       ),
     ),
   );
