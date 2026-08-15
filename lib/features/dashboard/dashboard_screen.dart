@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/format.dart';
 import '../../core/glass.dart';
@@ -10,9 +11,132 @@ import '../../data/category_repository.dart';
 import '../../data/expense_repository.dart';
 import '../../domain/models/expense.dart';
 import '../../domain/models/expense_category.dart';
+import '../entry/add_expense_sheet.dart';
 import '../entry/expense_actions.dart';
 import '../txns/transactions_screen.dart';
+import 'daily_tip.dart';
 import 'dashboard_charts.dart';
+
+/// Period the dashboard Cash Flow card summarises.
+enum DashPeriod { thisWeek, thisMonth, lastMonth, thisYear, allTime }
+
+extension DashPeriodX on DashPeriod {
+  String get label => switch (this) {
+        DashPeriod.thisWeek => 'This week',
+        DashPeriod.thisMonth => 'This month',
+        DashPeriod.lastMonth => 'Last month',
+        DashPeriod.thisYear => 'This year',
+        DashPeriod.allTime => 'All time',
+      };
+
+  /// Half-open [start, end) range, or null for all time.
+  DateTimeRange? range(DateTime now) {
+    final today = DateTime(now.year, now.month, now.day);
+    switch (this) {
+      case DashPeriod.thisWeek:
+        final start = today.subtract(Duration(days: today.weekday - 1));
+        return DateTimeRange(
+            start: start, end: start.add(const Duration(days: 7)));
+      case DashPeriod.thisMonth:
+        return DateTimeRange(
+            start: DateTime(now.year, now.month, 1),
+            end: DateTime(now.year, now.month + 1, 1));
+      case DashPeriod.lastMonth:
+        return DateTimeRange(
+            start: DateTime(now.year, now.month - 1, 1),
+            end: DateTime(now.year, now.month, 1));
+      case DashPeriod.thisYear:
+        return DateTimeRange(
+            start: DateTime(now.year, 1, 1),
+            end: DateTime(now.year + 1, 1, 1));
+      case DashPeriod.allTime:
+        return null;
+    }
+  }
+}
+
+class _DashPeriodNotifier extends Notifier<DashPeriod> {
+  @override
+  DashPeriod build() => DashPeriod.thisMonth;
+  void set(DashPeriod p) => state = p;
+}
+
+final dashPeriodProvider =
+    NotifierProvider<_DashPeriodNotifier, DashPeriod>(_DashPeriodNotifier.new);
+
+Future<void> _showPeriodPicker(BuildContext context, WidgetRef ref) {
+  final current = ref.read(dashPeriodProvider);
+  return showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (ctx) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final p in DashPeriod.values)
+            ListTile(
+              leading: Icon(p == current
+                  ? Icons.radio_button_checked
+                  : Icons.radio_button_off),
+              title: Text(p.label),
+              onTap: () {
+                ref.read(dashPeriodProvider.notifier).set(p);
+                Navigator.pop(ctx);
+              },
+            ),
+        ],
+      ),
+    ),
+  );
+}
+
+String _greeting(DateTime now) {
+  final h = now.hour;
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+String _displayName() {
+  final email = Supabase.instance.client.auth.currentUser?.email;
+  final prefix = (email ?? '').split('@').first;
+  if (prefix.isEmpty) return 'there';
+  return prefix[0].toUpperCase() + prefix.substring(1);
+}
+
+/// Small tappable pill showing the current dashboard period.
+class _PeriodPill extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _PeriodPill({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
+    return Material(
+      color: dark ? Colors.white.withAlpha(18) : Colors.black.withAlpha(10),
+      borderRadius: BorderRadius.circular(AppRadius.pill),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(label,
+                  style: theme.textTheme.labelLarge
+                      ?.copyWith(fontWeight: FontWeight.w600)),
+              Icon(Icons.expand_more_rounded,
+                  size: 18, color: theme.colorScheme.outline),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class HomeTab extends ConsumerWidget {
   const HomeTab({super.key});
@@ -51,50 +175,73 @@ class HomeTab extends ConsumerWidget {
   }
 }
 
-class _Content extends StatelessWidget {
+class _Content extends ConsumerWidget {
   final List<Expense> expenses;
   final Map<String, ExpenseCategory> catMap;
   const _Content({required this.expenses, required this.catMap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final now = DateTime.now();
-    final monthTx = expenses
-        .where((e) => e.spentAt.year == now.year && e.spentAt.month == now.month)
-        .toList();
-    final monthExpenses = monthTx.where((e) => e.isExpense).toList();
-    final spending = monthExpenses.fold<double>(0, (s, e) => s + e.amount);
+    final period = ref.watch(dashPeriodProvider);
+    final r = period.range(now);
+    bool inPeriod(Expense e) =>
+        r == null ||
+        (!e.spentAt.isBefore(r.start) && e.spentAt.isBefore(r.end));
+
+    final periodTx = expenses.where(inPeriod).toList();
+    final periodExpenses = periodTx.where((e) => e.isExpense).toList();
+    final spending = periodExpenses.fold<double>(0, (s, e) => s + e.amount);
     final income =
-        monthTx.where((e) => e.isIncome).fold<double>(0, (s, e) => s + e.amount);
+        periodTx.where((e) => e.isIncome).fold<double>(0, (s, e) => s + e.amount);
     final expenseTx = expenses.where((e) => e.isExpense).toList();
     final recent = expenses.length > 12 ? expenses.sublist(0, 12) : expenses;
+
+    final name = _displayName();
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        Row(
           children: [
-            Text('Welcome back',
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: theme.colorScheme.outline)),
-            Text('Overview',
-                style: theme.textTheme.headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.w700)),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(_greeting(now),
+                      style: theme.textTheme.bodyMedium
+                          ?.copyWith(color: theme.colorScheme.outline)),
+                  Text(name, style: theme.textTheme.headlineSmall),
+                ],
+              ),
+            ),
+            _PeriodPill(
+                label: period.label,
+                onTap: () => _showPeriodPicker(context, ref)),
           ],
         ),
         const SizedBox(height: 16),
-        _CashFlowCard(spending: spending, income: income)
+        _CashFlowCard(
+          spending: spending,
+          income: income,
+          periodLabel: period.label,
+          onTapPeriod: () => _showPeriodPicker(context, ref),
+        )
             .animate()
             .fadeIn(duration: 350.ms)
             .slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
         const SizedBox(height: 14),
-        if (monthExpenses.isNotEmpty) ...[
+        const DailyTipCard()
+            .animate()
+            .fadeIn(delay: 80.ms, duration: 350.ms)
+            .slideY(begin: 0.1, end: 0),
+        const SizedBox(height: 14),
+        if (periodExpenses.isNotEmpty) ...[
           GlassCard(
-                  child:
-                      CategoryDonut(monthExpenses: monthExpenses, catMap: catMap))
+                  child: CategoryDonut(
+                      monthExpenses: periodExpenses, catMap: catMap))
               .animate()
               .fadeIn(delay: 100.ms, duration: 350.ms)
               .slideY(begin: 0.1, end: 0),
@@ -149,7 +296,14 @@ class _Content extends StatelessWidget {
 class _CashFlowCard extends StatelessWidget {
   final double spending;
   final double income;
-  const _CashFlowCard({required this.spending, required this.income});
+  final String periodLabel;
+  final VoidCallback onTapPeriod;
+  const _CashFlowCard({
+    required this.spending,
+    required this.income,
+    required this.periodLabel,
+    required this.onTapPeriod,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -177,14 +331,26 @@ class _CashFlowCard extends StatelessWidget {
                       fontSize: 16,
                       fontWeight: FontWeight.w700)),
               const Spacer(),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(38),
-                    borderRadius: BorderRadius.circular(20)),
-                child: const Text('This month',
-                    style: TextStyle(color: Colors.white, fontSize: 12)),
+              Material(
+                color: Colors.white.withAlpha(38),
+                borderRadius: BorderRadius.circular(20),
+                child: InkWell(
+                  onTap: onTapPeriod,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 5, 8, 5),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(periodLabel,
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 12)),
+                        const Icon(Icons.expand_more_rounded,
+                            color: Colors.white, size: 16),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -276,7 +442,8 @@ class _TxRow extends StatelessWidget {
     final color = hexColor(cat?.color ?? '#2a78d6');
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => showExpenseActions(context, expense),
+      onTap: () => showEditExpenseSheet(context, expense),
+      onLongPress: () => showExpenseActions(context, expense),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 10),
         child: Row(

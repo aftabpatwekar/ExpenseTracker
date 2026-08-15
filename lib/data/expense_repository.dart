@@ -59,6 +59,32 @@ class ExpenseRepository {
     });
   }
 
+  /// Edit an existing expense in place.
+  Future<void> update(
+    String id, {
+    required double amount,
+    String? categoryId,
+    required String note,
+    DateTime? spentAt,
+    String type = 'expense',
+    String? accountId,
+    List<String> tags = const [],
+    String? receiptUrl,
+    String? groupId,
+  }) async {
+    await _client.from('expenses').update({
+      'category_id': categoryId,
+      'amount': amount,
+      'note': note,
+      'spent_at': (spentAt ?? DateTime.now()).toUtc().toIso8601String(),
+      'type': type,
+      'account_id': accountId,
+      'tags': tags,
+      'receipt_url': receiptUrl,
+      'group_id': groupId,
+    }).eq('id', id);
+  }
+
   /// Soft delete — the row stays in the DB (recoverable), just hidden.
   Future<void> softDelete(String id) async {
     await _client

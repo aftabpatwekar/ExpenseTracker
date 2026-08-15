@@ -8,6 +8,7 @@ import '../../data/category_repository.dart';
 import '../../data/expense_repository.dart';
 import '../../domain/models/expense.dart';
 import '../../domain/models/expense_category.dart';
+import '../entry/add_expense_sheet.dart';
 import '../entry/expense_actions.dart';
 
 enum _Range { thisMonth, last30, all }
@@ -208,7 +209,8 @@ class _Row extends StatelessWidget {
     final color = hexColor(cat?.color ?? '#2a78d6');
     return GlassCard(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      onTap: () => showExpenseActions(context, expense),
+      onTap: () => showEditExpenseSheet(context, expense),
+      onLongPress: () => showExpenseActions(context, expense),
       child: Row(
         children: [
           Container(

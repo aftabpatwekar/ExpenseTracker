@@ -16,15 +16,27 @@ import '../../domain/models/expense_category.dart';
 import '../../domain/services/expense_parser.dart';
 
 Future<void> showAddExpenseSheet(BuildContext context,
-    {bool startVoice = false, String? groupId}) {
+    {bool startVoice = false,
+    String? groupId,
+    Expense? initial,
+    bool edit = false}) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
     showDragHandle: true,
-    builder: (_) => AddExpenseSheet(startVoice: startVoice, groupId: groupId),
+    builder: (_) => AddExpenseSheet(
+        startVoice: startVoice, groupId: groupId, initial: initial, edit: edit),
   );
 }
+
+/// Opens the sheet to edit an existing expense.
+Future<void> showEditExpenseSheet(BuildContext context, Expense e) =>
+    showAddExpenseSheet(context, initial: e, edit: true);
+
+/// Opens the sheet pre-filled from an expense, but saves as a new entry.
+Future<void> showDuplicateExpenseSheet(BuildContext context, Expense e) =>
+    showAddExpenseSheet(context, initial: e, edit: false);
 
 class AddExpenseSheet extends ConsumerStatefulWidget {
   /// When true, the sheet starts listening immediately (used by the
@@ -33,7 +45,18 @@ class AddExpenseSheet extends ConsumerStatefulWidget {
 
   /// When set, the expense is created straight into this group (selector hidden).
   final String? groupId;
-  const AddExpenseSheet({super.key, this.startVoice = false, this.groupId});
+
+  /// Pre-fill the form from this expense (for edit or duplicate).
+  final Expense? initial;
+
+  /// When true with [initial], saving updates that expense instead of adding.
+  final bool edit;
+  const AddExpenseSheet(
+      {super.key,
+      this.startVoice = false,
+      this.groupId,
+      this.initial,
+      this.edit = false});
 
   @override
   ConsumerState<AddExpenseSheet> createState() => _AddExpenseSheetState();
@@ -64,6 +87,19 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
   void initState() {
     super.initState();
     _groupId = widget.groupId;
+    // Pre-fill for edit / duplicate.
+    final init = widget.initial;
+    if (init != null) {
+      _amount.text = trimAmount(init.amount);
+      _note.text = init.note;
+      _categoryId = init.categoryId;
+      _type = init.type;
+      _accountId = init.accountId;
+      _tags.addAll(init.tags);
+      _date = init.spentAt;
+      _receiptPath = init.receiptUrl;
+      _groupId = widget.groupId ?? init.groupId;
+    }
     // Opened via Back-Tap / "Speak expense" → start listening immediately.
     if (widget.startVoice) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -233,19 +269,40 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
       _error = null;
     });
     try {
-      await ref.read(expenseRepositoryProvider).add(
-            amount: amt,
-            categoryId: _categoryId ?? _fallbackId(cats),
-            note: _note.text.trim(),
-            rawText: _quick.text.trim().isEmpty ? null : _quick.text.trim(),
-            spentAt: _date,
-            type: _type,
-            accountId: accountId,
-            tags: _tags,
-            receiptUrl: _receiptPath,
-            groupId: _groupId,
-          );
+      final repo = ref.read(expenseRepositoryProvider);
+      if (widget.edit && widget.initial != null) {
+        await repo.update(
+          widget.initial!.id,
+          amount: amt,
+          categoryId: _categoryId ?? _fallbackId(cats),
+          note: _note.text.trim(),
+          spentAt: _date,
+          type: _type,
+          accountId: accountId,
+          tags: _tags,
+          receiptUrl: _receiptPath,
+          groupId: _groupId,
+        );
+      } else {
+        await repo.add(
+          amount: amt,
+          categoryId: _categoryId ?? _fallbackId(cats),
+          note: _note.text.trim(),
+          rawText: _quick.text.trim().isEmpty ? null : _quick.text.trim(),
+          spentAt: _date,
+          type: _type,
+          accountId: accountId,
+          tags: _tags,
+          receiptUrl: _receiptPath,
+          groupId: _groupId,
+        );
+      }
       ref.invalidate(expensesProvider);
+      final origGroup = widget.initial?.groupId;
+      if (origGroup != null && origGroup != _groupId) {
+        ref.invalidate(groupExpensesProvider(origGroup));
+        ref.invalidate(groupBudgetProvider(origGroup));
+      }
       if (_groupId != null) {
         ref.invalidate(groupExpensesProvider(_groupId!));
         ref.invalidate(groupBudgetProvider(_groupId!));
@@ -289,7 +346,9 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(_type == 'income' ? 'Add income' : 'Add expense',
+              Text(
+                  '${widget.edit ? 'Edit' : 'Add'} '
+                  '${_type == 'income' ? 'income' : 'expense'}',
                   style: theme.textTheme.titleLarge),
               const SizedBox(height: 12),
               SegmentedButton<String>(
@@ -549,7 +608,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Save expense'),
+                    : Text(widget.edit ? 'Save changes' : 'Save expense'),
               ),
             ],
           ),

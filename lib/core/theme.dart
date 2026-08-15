@@ -89,14 +89,18 @@ ThemeData buildTheme(Brightness brightness) {
       thickness: 1,
     ),
     chipTheme: ChipThemeData(
-      backgroundColor: dark ? kDarkSurface2 : const Color(0xFFECEDF4),
+      backgroundColor: dark ? const Color(0xFF26262C) : const Color(0xFFECEDF4),
       selectedColor: kAccent,
-      side: BorderSide.none,
+      side: BorderSide(
+          color: dark ? Colors.white.withAlpha(22) : Colors.black.withAlpha(12)),
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.pill)),
       labelStyle: TextStyle(
           color: dark ? Colors.white : const Color(0xFF14141A),
           fontWeight: FontWeight.w600),
+      secondaryLabelStyle: const TextStyle(
+          color: Colors.white, fontWeight: FontWeight.w700),
+      showCheckmark: false,
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,

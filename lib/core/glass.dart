@@ -58,12 +58,14 @@ class GlassCard extends StatelessWidget {
   final EdgeInsetsGeometry padding;
   final double radius;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   const GlassCard({
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(AppSpace.lg),
     this.radius = AppRadius.lg,
     this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -89,11 +91,12 @@ class GlassCard extends StatelessWidget {
       ),
     );
 
-    if (onTap != null) {
+    if (onTap != null || onLongPress != null) {
       card = Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
+          onLongPress: onLongPress,
           borderRadius: BorderRadius.circular(radius),
           child: card,
         ),
