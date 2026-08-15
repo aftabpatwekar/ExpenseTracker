@@ -12,6 +12,7 @@ class Expense {
   final String? accountId;
   final List<String> tags;
   final String? receiptUrl; // storage path in the private 'receipts' bucket
+  final String? groupId; // when set, shared with this group
 
   const Expense({
     required this.id,
@@ -25,6 +26,7 @@ class Expense {
     this.accountId,
     this.tags = const [],
     this.receiptUrl,
+    this.groupId,
   });
 
   bool get isIncome => type == 'income';
@@ -49,5 +51,6 @@ class Expense {
                 .toList(growable: false) ??
             const [],
         receiptUrl: m['receipt_url'] as String?,
+        groupId: m['group_id'] as String?,
       );
 }

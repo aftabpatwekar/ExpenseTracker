@@ -17,9 +17,13 @@ class ExpenseRepository {
   ExpenseRepository(this._client);
 
   Future<List<Expense>> fetchRecent({int limit = 200}) async {
+    // Personal ledger only. Group expenses are visible via RLS to all members,
+    // so scope this to the signed-in user's own rows.
+    final uid = _client.auth.currentUser!.id;
     final rows = await _client
         .from('expenses')
         .select()
+        .eq('user_id', uid)
         .filter('deleted_at', 'is', null) // exclude soft-deleted
         .order('spent_at', ascending: false)
         .limit(limit);
@@ -36,6 +40,7 @@ class ExpenseRepository {
     String? accountId,
     List<String> tags = const [],
     String? receiptUrl,
+    String? groupId,
   }) async {
     // RLS requires user_id == auth.uid() on insert.
     final uid = _client.auth.currentUser!.id;
@@ -50,6 +55,7 @@ class ExpenseRepository {
       'account_id': accountId,
       'tags': tags,
       'receipt_url': receiptUrl,
+      'group_id': groupId,
     });
   }
 

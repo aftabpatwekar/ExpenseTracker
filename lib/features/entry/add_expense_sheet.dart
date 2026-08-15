@@ -7,19 +7,22 @@ import '../../core/format.dart';
 import '../../data/account_repository.dart';
 import '../../data/category_repository.dart';
 import '../../data/expense_repository.dart';
+import '../../data/group_repository.dart';
 import '../../data/receipt_repository.dart';
+import '../../domain/models/group.dart';
 import '../../domain/models/account.dart';
 import '../../domain/models/expense.dart';
 import '../../domain/models/expense_category.dart';
 import '../../domain/services/expense_parser.dart';
 
-Future<void> showAddExpenseSheet(BuildContext context, {bool startVoice = false}) {
+Future<void> showAddExpenseSheet(BuildContext context,
+    {bool startVoice = false, String? groupId}) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
     showDragHandle: true,
-    builder: (_) => AddExpenseSheet(startVoice: startVoice),
+    builder: (_) => AddExpenseSheet(startVoice: startVoice, groupId: groupId),
   );
 }
 
@@ -27,7 +30,10 @@ class AddExpenseSheet extends ConsumerStatefulWidget {
   /// When true, the sheet starts listening immediately (used by the
   /// Back-Tap / quick-add entry point).
   final bool startVoice;
-  const AddExpenseSheet({super.key, this.startVoice = false});
+
+  /// When set, the expense is created straight into this group (selector hidden).
+  final String? groupId;
+  const AddExpenseSheet({super.key, this.startVoice = false, this.groupId});
 
   @override
   ConsumerState<AddExpenseSheet> createState() => _AddExpenseSheetState();
@@ -52,10 +58,12 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
   String? _error;
   String? _receiptPath; // storage path once a receipt is uploaded
   bool _uploadingReceipt = false;
+  String? _groupId; // when set, expense is shared with this group
 
   @override
   void initState() {
     super.initState();
+    _groupId = widget.groupId;
     // Opened via Back-Tap / "Speak expense" → start listening immediately.
     if (widget.startVoice) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -235,8 +243,13 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
             accountId: accountId,
             tags: _tags,
             receiptUrl: _receiptPath,
+            groupId: _groupId,
           );
       ref.invalidate(expensesProvider);
+      if (_groupId != null) {
+        ref.invalidate(groupExpensesProvider(_groupId!));
+        ref.invalidate(groupBudgetProvider(_groupId!));
+      }
       if (mounted) Navigator.of(context).pop();
     } catch (_) {
       if (mounted) {
@@ -470,6 +483,57 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
                       child: const Text('Remove'),
                     ),
                   ],
+                ),
+              // Optional group sharing.
+              if (widget.groupId == null)
+                Builder(builder: (context) {
+                  final groups =
+                      ref.watch(groupsProvider).asData?.value ?? const <Group>[];
+                  if (groups.isEmpty) return const SizedBox.shrink();
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 16),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('Share with group',
+                            style: theme.textTheme.labelLarge),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          ChoiceChip(
+                            label: const Text('None'),
+                            selected: _groupId == null,
+                            onSelected: (_) => setState(() => _groupId = null),
+                          ),
+                          for (final g in groups)
+                            ChoiceChip(
+                              label: Text(g.name),
+                              selected: _groupId == g.id,
+                              onSelected: (_) =>
+                                  setState(() => _groupId = g.id),
+                            ),
+                        ],
+                      ),
+                    ],
+                  );
+                })
+              else
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Row(
+                    children: [
+                      Icon(Icons.groups_2_rounded,
+                          size: 18, color: theme.colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Text('Adding to a shared group',
+                          style: theme.textTheme.bodySmall
+                              ?.copyWith(color: theme.colorScheme.outline)),
+                    ],
+                  ),
                 ),
               if (_error != null) ...[
                 const SizedBox(height: 14),

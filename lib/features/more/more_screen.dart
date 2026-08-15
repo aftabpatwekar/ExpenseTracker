@@ -16,7 +16,9 @@ import '../auth/auth_repository.dart';
 import '../budget/budgets_screen.dart';
 import '../calendar/calendar_screen.dart';
 import '../category/categories_screen.dart';
+import '../groups/groups_screen.dart';
 import '../recurring/scheduled_screen.dart';
+import '../reports/reports_screen.dart';
 import 'excel_export.dart';
 import 'reminders_sheet.dart';
 
@@ -83,6 +85,11 @@ class MoreScreen extends ConsumerWidget {
             padding: EdgeInsets.zero,
             child: Column(
               children: [
+                _tile(context, Icons.description_outlined, 'Reports',
+                    'Filter & download CSV, Excel or PDF',
+                    () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => const ReportsScreen()))),
+                const Divider(height: 1),
                 _tile(context, Icons.file_download_outlined, 'Export to CSV',
                     'Download all expenses (opens in Excel)',
                     () => _export(context, ref)),
@@ -95,6 +102,11 @@ class MoreScreen extends ConsumerWidget {
                     'Monthly & annual limits',
                     () => Navigator.of(context).push(MaterialPageRoute(
                         builder: (_) => const BudgetsScreen()))),
+                const Divider(height: 1),
+                _tile(context, Icons.groups_2_outlined, 'Groups',
+                    'Share a budget with others',
+                    () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => const GroupsScreen()))),
                 const Divider(height: 1),
                 _tile(context, Icons.category_outlined, 'Categories',
                     'Edit names & keywords',
