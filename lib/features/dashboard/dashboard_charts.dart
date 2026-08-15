@@ -156,7 +156,16 @@ class MonthlyTrend extends StatelessWidget {
             BarChartData(
               maxY: maxY * 1.2,
               alignment: BarChartAlignment.spaceAround,
-              barTouchData: BarTouchData(enabled: false),
+              barTouchData: BarTouchData(
+                enabled: true,
+                touchTooltipData: BarTouchTooltipData(
+                  getTooltipItem: (group, gi, rod, ri) => BarTooltipItem(
+                    formatMoney(rod.toY),
+                    const TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
               gridData: const FlGridData(show: false),
               borderData: FlBorderData(show: false),
               titlesData: FlTitlesData(
