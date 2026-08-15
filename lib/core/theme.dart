@@ -55,14 +55,46 @@ const LinearGradient kAccentGradient = LinearGradient(
   colors: [kMarigoldLight, kMarigold],
 );
 
-ThemeData buildTheme(Brightness brightness) {
+/// User-selectable accent colors. First entry (Marigold) is the brand default.
+class AccentOption {
+  final String name;
+  final Color color;
+  const AccentOption(this.name, this.color);
+}
+
+const List<AccentOption> kAccentOptions = [
+  AccentOption('Marigold', kMarigold),
+  AccentOption('Royal Blue', Color(0xFF4F7DF9)),
+  AccentOption('Emerald', Color(0xFF1FA971)),
+  AccentOption('Violet', Color(0xFF8E5CF7)),
+  AccentOption('Rose', Color(0xFFF43F6B)),
+  AccentOption('Cyan', Color(0xFF12B6C9)),
+];
+
+/// Contrasting on-accent color (ink for light accents like marigold, else white).
+Color onAccentOf(Color accent) =>
+    accent.computeLuminance() > 0.5 ? kInk : Colors.white;
+
+/// A gradient built from any accent (lighter → base).
+LinearGradient accentGradientOf(Color accent) => LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color.lerp(accent, Colors.white, 0.22)!, accent],
+    );
+
+/// Accent gradient for the current theme.
+LinearGradient accentGradient(BuildContext context) =>
+    accentGradientOf(Theme.of(context).colorScheme.primary);
+
+ThemeData buildTheme(Brightness brightness, [Color accent = kMarigold]) {
   final dark = brightness == Brightness.dark;
+  final onAcc = onAccentOf(accent);
   final scheme = ColorScheme.fromSeed(
-    seedColor: kMarigold,
+    seedColor: accent,
     brightness: brightness,
   ).copyWith(
-    primary: kMarigold,
-    onPrimary: kInk,
+    primary: accent,
+    onPrimary: onAcc,
     secondary: kInkLight,
     onSecondary: Colors.white,
     error: kSindoor,
@@ -106,7 +138,7 @@ ThemeData buildTheme(Brightness brightness) {
     dividerTheme: DividerThemeData(color: scheme.outlineVariant, thickness: 1),
     chipTheme: ChipThemeData(
       backgroundColor: dark ? const Color(0xFF262D3A) : const Color(0xFFF1E9D9),
-      selectedColor: kMarigold,
+      selectedColor: accent,
       side: BorderSide(
           color: dark ? Colors.white.withAlpha(22) : Colors.black.withAlpha(14)),
       shape: RoundedRectangleBorder(
@@ -115,7 +147,7 @@ ThemeData buildTheme(Brightness brightness) {
           color: dark ? const Color(0xFFF3EFE6) : kInk,
           fontWeight: FontWeight.w600),
       secondaryLabelStyle:
-          const TextStyle(color: kInk, fontWeight: FontWeight.w700),
+          TextStyle(color: onAcc, fontWeight: FontWeight.w700),
       showCheckmark: false,
     ),
     inputDecorationTheme: InputDecorationTheme(
@@ -131,7 +163,7 @@ ThemeData buildTheme(Brightness brightness) {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppRadius.sm),
-        borderSide: const BorderSide(color: kMarigold, width: 1.6),
+        borderSide: BorderSide(color: accent, width: 1.6),
       ),
     ),
   );

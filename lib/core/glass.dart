@@ -106,6 +106,58 @@ class GlassCard extends StatelessWidget {
   }
 }
 
+/// Centered, small, glass page title used at the top of each tab. Optional
+/// [leading]/[trailing] widgets sit at the row's edges.
+class GlassHeader extends StatelessWidget {
+  final String title;
+  final Widget? leading;
+  final Widget? trailing;
+  const GlassHeader({super.key, required this.title, this.leading, this.trailing});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
+    return SizedBox(
+      height: 44,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
+                decoration: BoxDecoration(
+                  color: dark
+                      ? Colors.white.withAlpha(16)
+                      : Colors.black.withAlpha(10),
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                  border: Border.all(
+                      color: dark
+                          ? Colors.white.withAlpha(20)
+                          : Colors.black.withAlpha(12)),
+                ),
+                child: Text(
+                  title.toUpperCase(),
+                  style: theme.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w700, letterSpacing: 1.2),
+                ),
+              ),
+            ),
+          ),
+          if (leading != null)
+            Align(alignment: Alignment.centerLeft, child: leading),
+          if (trailing != null)
+            Align(alignment: Alignment.centerRight, child: trailing),
+        ],
+      ),
+    );
+  }
+}
+
 /// A pill-shaped sliding segmented control on a glass track — the "common glass
 /// bar" used at the top of Analysis. Animates the selected thumb between tabs.
 class GlassSegmented extends StatelessWidget {
@@ -148,11 +200,11 @@ class GlassSegmented extends StatelessWidget {
                   width: w,
                   height: 36,
                   decoration: BoxDecoration(
-                    gradient: kAccentGradient,
+                    gradient: accentGradient(context),
                     borderRadius: BorderRadius.circular(AppRadius.pill),
                     boxShadow: [
                       BoxShadow(
-                          color: kAccent.withAlpha(90),
+                          color: theme.colorScheme.primary.withAlpha(90),
                           blurRadius: 12,
                           offset: const Offset(0, 3)),
                     ],
@@ -173,7 +225,7 @@ class GlassSegmented extends StatelessWidget {
                               duration: const Duration(milliseconds: 200),
                               style: theme.textTheme.labelLarge!.copyWith(
                                 color: i == selected
-                                    ? kInk
+                                    ? onAccentOf(theme.colorScheme.primary)
                                     : theme.colorScheme.outline,
                                 fontWeight: i == selected
                                     ? FontWeight.w800

@@ -14,6 +14,7 @@ import '../../domain/models/expense.dart';
 import '../../domain/models/expense_category.dart';
 import '../entry/add_expense_sheet.dart';
 import '../entry/expense_actions.dart';
+import '../search/search_screen.dart';
 import '../txns/transactions_screen.dart';
 import 'daily_tip.dart';
 import 'dashboard_charts.dart';
@@ -105,35 +106,24 @@ String _displayName() {
   return prefix[0].toUpperCase() + prefix.substring(1);
 }
 
-/// Small tappable pill showing the current dashboard period.
-class _PeriodPill extends StatelessWidget {
-  final String label;
+/// Round glass icon button used in the Home header (search).
+class _HeaderIconButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
   final VoidCallback onTap;
-  const _PeriodPill({required this.label, required this.onTap});
+  const _HeaderIconButton(
+      {required this.icon, required this.tooltip, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final dark = theme.brightness == Brightness.dark;
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Material(
-      color: dark ? Colors.white.withAlpha(18) : Colors.black.withAlpha(10),
-      borderRadius: BorderRadius.circular(AppRadius.pill),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(label,
-                  style: theme.textTheme.labelLarge
-                      ?.copyWith(fontWeight: FontWeight.w600)),
-              Icon(Icons.expand_more_rounded,
-                  size: 18, color: theme.colorScheme.outline),
-            ],
-          ),
-        ),
+      color: dark ? Colors.white.withAlpha(20) : Colors.black.withAlpha(12),
+      shape: const CircleBorder(),
+      child: IconButton(
+        onPressed: onTap,
+        tooltip: tooltip,
+        icon: Icon(icon, size: 22),
       ),
     );
   }
@@ -221,9 +211,12 @@ class _Content extends ConsumerWidget {
                 ],
               ),
             ),
-            _PeriodPill(
-                label: period.label,
-                onTap: () => _showPeriodPicker(context, ref)),
+            _HeaderIconButton(
+              icon: Icons.search_rounded,
+              tooltip: 'Search',
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => const SearchScreen())),
+            ),
           ],
         ),
         const SizedBox(height: 16),

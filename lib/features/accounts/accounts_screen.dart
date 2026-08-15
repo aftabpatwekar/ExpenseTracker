@@ -34,29 +34,28 @@ class AccountsScreen extends ConsumerWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
         children: [
-          Row(
-            children: [
-              Text('Accounts',
-                  style: theme.textTheme.headlineSmall
-                      ?.copyWith(fontWeight: FontWeight.w700)),
-              const Spacer(),
-              IconButton.filledTonal(
-                onPressed: () => _edit(context, null),
-                icon: const Icon(Icons.add),
-                tooltip: 'Add account',
-              ),
-            ],
+          GlassHeader(
+            title: 'Accounts',
+            trailing: IconButton.filledTonal(
+              onPressed: () => _edit(context, null),
+              icon: const Icon(Icons.add),
+              tooltip: 'Add account',
+            ),
           ),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              gradient: kAccentGradient,
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [kInkLight, kInk],
+              ),
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                    color: kAccent.withAlpha(90),
-                    blurRadius: 26,
+                    color: kInk.withAlpha(120),
+                    blurRadius: 24,
                     offset: const Offset(0, 12)),
               ],
             ),

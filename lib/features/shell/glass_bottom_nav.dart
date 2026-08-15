@@ -37,7 +37,7 @@ class GlassBottomNav extends StatelessWidget {
                 children: [
                   _item(context, Icons.home_rounded, 'Home', 0),
                   _item(context, Icons.pie_chart_rounded, 'Stats', 1),
-                  Expanded(child: Center(child: _addButton())),
+                  Expanded(child: Center(child: _addButton(context))),
                   _item(context, Icons.account_balance_wallet_rounded, 'Accounts', 2),
                   _item(context, Icons.more_horiz_rounded, 'More', 3),
                 ],
@@ -53,7 +53,7 @@ class GlassBottomNav extends StatelessWidget {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final selected = index == i;
     final color = selected
-        ? kAccentBlue
+        ? Theme.of(context).colorScheme.primary
         : (dark ? Colors.white70 : Colors.black54);
     return Expanded(
       child: GestureDetector(
@@ -77,23 +77,24 @@ class GlassBottomNav extends StatelessWidget {
     );
   }
 
-  Widget _addButton() {
+  Widget _addButton(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
     return GestureDetector(
       onTap: onAdd,
       child: Container(
         width: 52,
         height: 52,
         decoration: BoxDecoration(
-          gradient: kAccentGradient,
+          gradient: accentGradient(context),
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-                color: kAccent.withAlpha(130),
+                color: primary.withAlpha(130),
                 blurRadius: 16,
                 offset: const Offset(0, 6)),
           ],
         ),
-        child: const Icon(Icons.add, color: kInk, size: 28),
+        child: Icon(Icons.add, color: onAccentOf(primary), size: 28),
       ),
     );
   }

@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/format.dart';
 import '../../core/glass.dart';
 import '../../core/hex.dart';
-import '../../core/theme.dart';
 import '../../data/category_repository.dart';
 import '../../data/expense_repository.dart';
 import '../../domain/models/expense.dart';
@@ -137,13 +136,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       margin: const EdgeInsets.all(2),
                       decoration: BoxDecoration(
                         color: selected
-                            ? kAccent.withAlpha(60)
+                            ? theme.colorScheme.primary.withAlpha(60)
                             : (amount != null
                                 ? theme.colorScheme.primary.withAlpha(18)
                                 : Colors.transparent),
                         borderRadius: BorderRadius.circular(10),
                         border: selected
-                            ? Border.all(color: kAccent, width: 1.4)
+                            ? Border.all(
+                                color: theme.colorScheme.primary, width: 1.4)
                             : null,
                       ),
                       child: Column(

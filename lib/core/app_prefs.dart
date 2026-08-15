@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'theme.dart';
+
 /// Overridden in main() with the loaded instance.
 final sharedPrefsProvider = Provider<SharedPreferences>((ref) {
   throw UnimplementedError('sharedPrefsProvider must be overridden in main()');
@@ -39,3 +41,26 @@ String themeModeLabel(ThemeMode m) => switch (m) {
       ThemeMode.dark => 'Dark',
       ThemeMode.system => 'Follows system',
     };
+
+/// Persisted accent color index into [kAccentOptions] (0 = Marigold default).
+class AccentNotifier extends Notifier<int> {
+  static const _key = 'accent_index';
+
+  @override
+  int build() {
+    final i = ref.watch(sharedPrefsProvider).getInt(_key) ?? 0;
+    return (i >= 0 && i < kAccentOptions.length) ? i : 0;
+  }
+
+  Future<void> set(int index) async {
+    state = index;
+    await ref.read(sharedPrefsProvider).setInt(_key, index);
+  }
+}
+
+final accentProvider = NotifierProvider<AccentNotifier, int>(AccentNotifier.new);
+
+/// The currently selected accent color.
+final accentColorProvider = Provider<Color>((ref) {
+  return kAccentOptions[ref.watch(accentProvider)].color;
+});

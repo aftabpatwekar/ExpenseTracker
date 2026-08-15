@@ -182,9 +182,10 @@ class _GroupTile extends ConsumerWidget {
           Container(
             width: 46,
             height: 46,
-            decoration: const BoxDecoration(
-                gradient: kAccentGradient, shape: BoxShape.circle),
-            child: const Icon(Icons.groups_2_rounded, color: Colors.white),
+            decoration: BoxDecoration(
+                gradient: accentGradient(context), shape: BoxShape.circle),
+            child: Icon(Icons.groups_2_rounded,
+                color: onAccentOf(theme.colorScheme.primary)),
           ),
           const SizedBox(width: AppSpace.md),
           Expanded(

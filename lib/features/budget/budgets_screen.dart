@@ -127,7 +127,7 @@ class _BudgetCard extends StatelessWidget {
     final has = budget > 0;
     final pct = has ? (spent / budget).clamp(0.0, 1.0) : 0.0;
     final over = has && spent > budget;
-    final ringColor = over ? Colors.redAccent : kAccentBlue;
+    final ringColor = over ? kSindoor : theme.colorScheme.primary;
 
     return GlassCard(
       child: Row(

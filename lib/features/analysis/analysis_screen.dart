@@ -188,19 +188,14 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(vertical: AppSpace.sm),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text('Analysis',
-                      style: theme.textTheme.headlineSmall),
-                ),
-                _RoundIconButton(
-                  icon: Icons.description_outlined,
-                  tooltip: 'Reports',
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => const ReportsScreen())),
-                ),
-              ],
+            child: GlassHeader(
+              title: 'Analysis',
+              trailing: _RoundIconButton(
+                icon: Icons.description_outlined,
+                tooltip: 'Reports',
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const ReportsScreen())),
+              ),
             ),
           ),
           // The common glass slider.
@@ -334,7 +329,8 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
                               BarChartRodData(
                                 toY: buckets[i].total,
                                 width: buckets.length > 14 ? 6 : 16,
-                                gradient: kAccentGradient,
+                                gradient:
+                                    accentGradientOf(theme.colorScheme.primary),
                                 borderRadius: const BorderRadius.vertical(
                                     top: Radius.circular(6)),
                               ),
@@ -383,16 +379,15 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
                             ],
                             isCurved: true,
                             preventCurveOverShooting: true,
-                            gradient: kAccentGradient,
+                            gradient: accentGradientOf(theme.colorScheme.primary),
                             barWidth: 3,
                             dotData: FlDotData(
                               show: buckets.length <= 12,
-                              getDotPainter: (s, _, _, _) =>
-                                  FlDotCirclePainter(
-                                      radius: 3,
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                      strokeColor: kAccent),
+                              getDotPainter: (s, _, _, _) => FlDotCirclePainter(
+                                  radius: 3,
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                  strokeColor: theme.colorScheme.primary),
                             ),
                             belowBarData: BarAreaData(
                               show: true,
@@ -400,8 +395,8 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
                                 colors: [
-                                  kAccent.withAlpha(70),
-                                  kAccent.withAlpha(0),
+                                  theme.colorScheme.primary.withAlpha(70),
+                                  theme.colorScheme.primary.withAlpha(0),
                                 ],
                               ),
                             ),
@@ -652,13 +647,15 @@ class _MiniToggle extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: i == selected ? kAccent : Colors.transparent,
+                  color: i == selected
+                      ? theme.colorScheme.primary
+                      : Colors.transparent,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icons[i],
                     size: 18,
                     color: i == selected
-                        ? Colors.white
+                        ? onAccentOf(theme.colorScheme.primary)
                         : theme.colorScheme.outline),
               ),
             ),

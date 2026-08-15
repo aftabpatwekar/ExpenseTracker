@@ -37,16 +37,15 @@ class MoreScreen extends ConsumerWidget {
         : email;
     final avatarUrl = profile?.avatarUrl;
     final mode = ref.watch(themeModeProvider);
+    final accentName = kAccentOptions[ref.watch(accentProvider)].name;
     return SafeArea(
       bottom: false,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text('More',
-                style: theme.textTheme.headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.w700)),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: GlassHeader(title: 'More'),
           ),
           GlassCard(
             onTap: () => Navigator.of(context).push(
@@ -57,7 +56,7 @@ class MoreScreen extends ConsumerWidget {
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    gradient: kAccentGradient,
+                    gradient: accentGradient(context),
                     shape: BoxShape.circle,
                     image: avatarUrl != null
                         ? DecorationImage(
@@ -69,8 +68,8 @@ class MoreScreen extends ConsumerWidget {
                       : Center(
                           child: Text(
                               name.isNotEmpty ? name[0].toUpperCase() : '?',
-                              style: const TextStyle(
-                                  color: kInk,
+                              style: TextStyle(
+                                  color: onAccentOf(theme.colorScheme.primary),
                                   fontSize: 22,
                                   fontWeight: FontWeight.w800))),
                 ),
@@ -147,6 +146,9 @@ class MoreScreen extends ConsumerWidget {
                 _tile(context, Icons.brightness_6_outlined, 'Appearance',
                     themeModeLabel(mode), () => _pickTheme(context, ref, mode)),
                 const Divider(height: 1),
+                _tile(context, Icons.palette_outlined, 'Accent color',
+                    accentName, () => _pickAccent(context, ref)),
+                const Divider(height: 1),
                 _tile(context, Icons.info_outline, 'About',
                     'Expense Tracker · v1.0', null),
               ],
@@ -189,6 +191,78 @@ class MoreScreen extends ConsumerWidget {
                 },
               ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAccent(BuildContext context, WidgetRef ref) {
+    final current = ref.read(accentProvider);
+    return showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Accent color',
+                  style: Theme.of(ctx).textTheme.titleMedium),
+              const SizedBox(height: 4),
+              Text('Marigold is the Molbhav default.',
+                  style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(ctx).colorScheme.outline)),
+              const SizedBox(height: 20),
+              Wrap(
+                spacing: 18,
+                runSpacing: 18,
+                children: [
+                  for (var i = 0; i < kAccentOptions.length; i++)
+                    GestureDetector(
+                      onTap: () {
+                        ref.read(accentProvider.notifier).set(i);
+                        Navigator.pop(ctx);
+                      },
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              gradient: accentGradientOf(kAccentOptions[i].color),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                  color: i == current
+                                      ? kAccentOptions[i].color
+                                      : Colors.transparent,
+                                  width: 3),
+                              boxShadow: [
+                                BoxShadow(
+                                    color:
+                                        kAccentOptions[i].color.withAlpha(90),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4)),
+                              ],
+                            ),
+                            child: i == current
+                                ? Icon(Icons.check,
+                                    color:
+                                        onAccentOf(kAccentOptions[i].color))
+                                : null,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(kAccentOptions[i].name,
+                              style: Theme.of(ctx).textTheme.bodySmall),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

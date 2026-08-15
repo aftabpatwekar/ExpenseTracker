@@ -15,12 +15,13 @@ class ExpenseApp extends ConsumerWidget {
     ref.watch(deepLinkListenerProvider);
     final router = ref.watch(routerProvider);
     final mode = ref.watch(themeModeProvider);
+    final accent = ref.watch(accentColorProvider);
     return MaterialApp.router(
       title: 'Molbhav',
       debugShowCheckedModeBanner: false,
       themeMode: mode,
-      theme: buildTheme(Brightness.light),
-      darkTheme: buildTheme(Brightness.dark),
+      theme: buildTheme(Brightness.light, accent),
+      darkTheme: buildTheme(Brightness.dark, accent),
       routerConfig: router,
       // Clamp system font scaling so a large device font setting (common on
       // Android) can't overflow tight layouts — keeps parity with iOS.

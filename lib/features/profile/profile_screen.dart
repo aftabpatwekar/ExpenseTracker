@@ -133,14 +133,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   height: 104,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: kAccentGradient,
+                    gradient: accentGradient(context),
                     image: _avatarUrl != null
                         ? DecorationImage(
                             image: NetworkImage(_avatarUrl!), fit: BoxFit.cover)
                         : null,
                     boxShadow: [
                       BoxShadow(
-                          color: kMarigold.withAlpha(60),
+                          color: theme.colorScheme.primary.withAlpha(60),
                           blurRadius: 18,
                           offset: const Offset(0, 6)),
                     ],
@@ -148,8 +148,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   child: _avatarUrl == null
                       ? Center(
                           child: Text(initial,
-                              style: const TextStyle(
-                                  color: kInk,
+                              style: TextStyle(
+                                  color: onAccentOf(theme.colorScheme.primary),
                                   fontSize: 40,
                                   fontWeight: FontWeight.w800)))
                       : null,
@@ -171,8 +171,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 height: 18,
                                 child:
                                     CircularProgressIndicator(strokeWidth: 2))
-                            : const Icon(Icons.camera_alt,
-                                size: 18, color: kInk),
+                            : Icon(Icons.camera_alt,
+                                size: 18,
+                                color: onAccentOf(theme.colorScheme.primary)),
                       ),
                     ),
                   ),
