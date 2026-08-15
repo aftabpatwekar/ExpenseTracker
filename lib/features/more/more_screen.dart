@@ -15,6 +15,7 @@ import '../../domain/models/expense_category.dart';
 import '../auth/auth_repository.dart';
 import '../budget/budgets_screen.dart';
 import '../category/categories_screen.dart';
+import '../recurring/scheduled_screen.dart';
 
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
@@ -92,6 +93,11 @@ class MoreScreen extends ConsumerWidget {
                     'Edit names & keywords',
                     () => Navigator.of(context).push(MaterialPageRoute(
                         builder: (_) => const CategoriesScreen()))),
+                const Divider(height: 1),
+                _tile(context, Icons.event_repeat_outlined, 'Scheduled',
+                    'Recurring transactions',
+                    () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => const ScheduledScreen()))),
                 const Divider(height: 1),
                 _tile(context, Icons.brightness_6_outlined, 'Appearance',
                     themeModeLabel(mode), () => _pickTheme(context, ref, mode)),

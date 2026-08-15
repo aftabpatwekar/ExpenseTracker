@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/deep_link.dart';
 import '../../core/glass.dart';
+import '../../data/expense_repository.dart';
+import '../../data/recurring_repository.dart';
 import '../accounts/accounts_screen.dart';
 import '../analysis/analysis_screen.dart';
 import '../dashboard/dashboard_screen.dart';
@@ -31,6 +33,11 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   @override
   void initState() {
     super.initState();
+    // Generate any due recurring transactions on open.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final created = await ref.read(recurringRepositoryProvider).catchUp();
+      if (created > 0 && mounted) ref.invalidate(expensesProvider);
+    });
     // Cold start: a deep link may already be pending before this mounted.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && ref.read(pendingAddProvider)) _openVoiceAdd();
