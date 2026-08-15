@@ -34,6 +34,7 @@ class ExpenseRepository {
     DateTime? spentAt,
     String type = 'expense',
     String? accountId,
+    List<String> tags = const [],
   }) async {
     // RLS requires user_id == auth.uid() on insert.
     final uid = _client.auth.currentUser!.id;
@@ -46,6 +47,7 @@ class ExpenseRepository {
       'spent_at': (spentAt ?? DateTime.now()).toUtc().toIso8601String(),
       'type': type,
       'account_id': accountId,
+      'tags': tags,
     });
   }
 

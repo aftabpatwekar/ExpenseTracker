@@ -10,6 +10,7 @@ class Expense {
   final DateTime spentAt; // local time
   final String type;
   final String? accountId;
+  final List<String> tags;
 
   const Expense({
     required this.id,
@@ -21,6 +22,7 @@ class Expense {
     required this.spentAt,
     this.type = 'expense',
     this.accountId,
+    this.tags = const [],
   });
 
   bool get isIncome => type == 'income';
@@ -40,5 +42,9 @@ class Expense {
         spentAt: DateTime.parse(m['spent_at'] as String).toLocal(),
         type: (m['type'] as String?) ?? 'expense',
         accountId: m['account_id'] as String?,
+        tags: (m['tags'] as List?)
+                ?.map((e) => e.toString())
+                .toList(growable: false) ??
+            const [],
       );
 }

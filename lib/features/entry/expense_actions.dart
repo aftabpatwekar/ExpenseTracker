@@ -35,6 +35,21 @@ class _ExpenseActionsSheet extends ConsumerWidget {
             Text('${formatMoney(expense.amount)} · ${formatDay(expense.spentAt)}',
                 style: theme.textTheme.bodySmall
                     ?.copyWith(color: theme.colorScheme.outline)),
+            if (expense.tags.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final t in expense.tags)
+                    Chip(
+                      label: Text(t),
+                      visualDensity: VisualDensity.compact,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                ],
+              ),
+            ],
             const SizedBox(height: 20),
             FilledButton.tonalIcon(
               style: FilledButton.styleFrom(

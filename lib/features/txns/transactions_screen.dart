@@ -58,7 +58,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       if (_catId != null && e.categoryId != _catId) return false;
       if (q.isNotEmpty) {
         final catName = (catMap[e.categoryId]?.name ?? '').toLowerCase();
-        if (!e.note.toLowerCase().contains(q) && !catName.contains(q)) {
+        final tagHit = e.tags.any((t) => t.toLowerCase().contains(q));
+        if (!e.note.toLowerCase().contains(q) &&
+            !catName.contains(q) &&
+            !tagHit) {
           return false;
         }
       }

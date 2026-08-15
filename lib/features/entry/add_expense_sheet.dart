@@ -7,6 +7,7 @@ import '../../data/account_repository.dart';
 import '../../data/category_repository.dart';
 import '../../data/expense_repository.dart';
 import '../../domain/models/account.dart';
+import '../../domain/models/expense.dart';
 import '../../domain/models/expense_category.dart';
 import '../../domain/services/expense_parser.dart';
 
@@ -34,8 +35,10 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
   final _quick = TextEditingController();
   final _amount = TextEditingController();
   final _note = TextEditingController();
+  final _tagInput = TextEditingController();
   final SpeechToText _speech = SpeechToText();
 
+  final List<String> _tags = [];
   String? _categoryId;
   String _type = 'expense';
   String? _accountId;
@@ -64,6 +67,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
     _quick.dispose();
     _amount.dispose();
     _note.dispose();
+    _tagInput.dispose();
     super.dispose();
   }
 
@@ -133,13 +137,26 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
-    final picked = await showDatePicker(
+    final d = await showDatePicker(
       context: context,
       initialDate: _date,
       firstDate: DateTime(now.year - 3),
       lastDate: now,
     );
-    if (picked != null) setState(() => _date = picked);
+    if (d == null || !mounted) return;
+    final t = await showTimePicker(
+        context: context, initialTime: TimeOfDay.fromDateTime(_date));
+    setState(() => _date = DateTime(d.year, d.month, d.day,
+        t?.hour ?? _date.hour, t?.minute ?? _date.minute));
+  }
+
+  void _addTag(String raw) {
+    final t = raw.trim();
+    if (t.isEmpty) return;
+    setState(() {
+      if (!_tags.contains(t)) _tags.add(t);
+      _tagInput.clear();
+    });
   }
 
   Future<void> _save(List<ExpenseCategory> cats, String? accountId) async {
@@ -161,6 +178,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
             spentAt: _date,
             type: _type,
             accountId: accountId,
+            tags: _tags,
           );
       ref.invalidate(expensesProvider);
       if (mounted) Navigator.of(context).pop();
@@ -182,6 +200,11 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
         ref.watch(accountsProvider).asData?.value ?? const <Account>[];
     final selectedAccount =
         _accountId ?? (accounts.isNotEmpty ? accounts.first.id : null);
+    final allTags = <String>{
+      for (final e
+          in ref.watch(expensesProvider).asData?.value ?? const <Expense>[])
+        ...e.tags
+    }.toList();
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Padding(
@@ -258,7 +281,9 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
                     child: OutlinedButton.icon(
                       onPressed: _pickDate,
                       icon: const Icon(Icons.calendar_today, size: 18),
-                      label: Text(formatDay(_date)),
+                      label: Text(
+                          '${formatDay(_date)} · ${TimeOfDay.fromDateTime(_date).format(context)}',
+                          overflow: TextOverflow.ellipsis),
                       style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16)),
                     ),
@@ -308,6 +333,52 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
                       onSelected: (_) => setState(() => _accountId = a.id),
                     );
                   }).toList(),
+                ),
+              ],
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Tags', style: theme.textTheme.labelLarge),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _tagInput,
+                textInputAction: TextInputAction.done,
+                onSubmitted: _addTag,
+                decoration: InputDecoration(
+                  hintText: 'Add a tag (e.g. vacation)',
+                  prefixIcon: const Icon(Icons.tag),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: () => _addTag(_tagInput.text),
+                  ),
+                ),
+              ),
+              if (_tags.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final t in _tags)
+                      InputChip(
+                        label: Text(t),
+                        onDeleted: () => setState(() => _tags.remove(t)),
+                      ),
+                  ],
+                ),
+              ],
+              if (allTags.where((t) => !_tags.contains(t)).isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final t
+                        in allTags.where((x) => !_tags.contains(x)).take(8))
+                      ActionChip(label: Text(t), onPressed: () => _addTag(t)),
+                  ],
                 ),
               ],
               if (_error != null) ...[
