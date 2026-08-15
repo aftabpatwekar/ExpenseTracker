@@ -17,6 +17,7 @@ import '../budget/budgets_screen.dart';
 import '../calendar/calendar_screen.dart';
 import '../category/categories_screen.dart';
 import '../recurring/scheduled_screen.dart';
+import 'excel_export.dart';
 
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
@@ -84,6 +85,10 @@ class MoreScreen extends ConsumerWidget {
                 _tile(context, Icons.file_download_outlined, 'Export to CSV',
                     'Download all expenses (opens in Excel)',
                     () => _export(context, ref)),
+                const Divider(height: 1),
+                _tile(context, Icons.table_chart_outlined, 'Export to Excel',
+                    'Download a formatted .xlsx',
+                    () => exportExcel(context, ref)),
                 const Divider(height: 1),
                 _tile(context, Icons.savings_outlined, 'Budgets',
                     'Monthly & annual limits',

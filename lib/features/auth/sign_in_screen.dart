@@ -64,6 +64,39 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     }
   }
 
+  Future<void> _forgotPassword() async {
+    final ctrl = TextEditingController(text: _email.text.trim());
+    final send = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Reset password'),
+        content: TextField(
+          controller: ctrl,
+          keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(labelText: 'Email'),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Send link')),
+        ],
+      ),
+    );
+    if (send != true) return;
+    final email = ctrl.text.trim();
+    if (!email.contains('@')) return;
+    try {
+      await ref.read(authRepositoryProvider).resetPassword(email);
+    } catch (_) {}
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('If an account exists, a reset link was emailed.')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -159,6 +192,11 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                           ? 'Have an account? Sign in'
                           : 'New here? Create an account'),
                     ),
+                    if (!_isSignUp)
+                      TextButton(
+                        onPressed: _loading ? null : _forgotPassword,
+                        child: const Text('Forgot password?'),
+                      ),
                   ],
                 ),
               ),

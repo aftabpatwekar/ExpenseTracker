@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/deep_link.dart';
 import '../../core/glass.dart';
@@ -7,6 +10,7 @@ import '../../data/expense_repository.dart';
 import '../../data/recurring_repository.dart';
 import '../accounts/accounts_screen.dart';
 import '../analysis/analysis_screen.dart';
+import '../auth/set_password_sheet.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../entry/add_expense_sheet.dart';
 import '../more/more_screen.dart';
@@ -22,6 +26,7 @@ class HomeShell extends ConsumerStatefulWidget {
 class _HomeShellState extends ConsumerState<HomeShell> {
   int _index = 0;
   bool _addSheetOpen = false;
+  StreamSubscription<AuthState>? _authSub;
 
   static const List<Widget> _tabs = [
     HomeTab(),
@@ -33,6 +38,14 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   @override
   void initState() {
     super.initState();
+    // Password reset: opening a reset link fires passwordRecovery.
+    _authSub = Supabase.instance.client.auth.onAuthStateChange.listen((state) {
+      if (state.event == AuthChangeEvent.passwordRecovery && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) showSetPasswordSheet(context);
+        });
+      }
+    });
     // Generate any due recurring transactions on open.
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final created = await ref.read(recurringRepositoryProvider).catchUp();
@@ -42,6 +55,12 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && ref.read(pendingAddProvider)) _openVoiceAdd();
     });
+  }
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
   }
 
   /// Open the voice-add sheet once, clearing the pending flag. Guards against

@@ -27,4 +27,13 @@ class AuthRepository {
   }
 
   Future<void> signOut() => _client.auth.signOut();
+
+  Future<void> resetPassword(String email) {
+    return _client.auth.resetPasswordForEmail(email.trim(),
+        redirectTo: 'expensetracker://reset-password');
+  }
+
+  Future<UserResponse> updatePassword(String newPassword) {
+    return _client.auth.updateUser(UserAttributes(password: newPassword));
+  }
 }
