@@ -210,11 +210,17 @@ class _CashFlowCard extends StatelessWidget {
                 const Text('Net Balance',
                     style: TextStyle(color: Colors.white70)),
                 const Spacer(),
-                Text(formatMoney(net),
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16)),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(formatMoney(net),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16)),
+                  ),
+                ),
               ],
             ),
           ),
@@ -245,11 +251,15 @@ class _CashFlowCard extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 4),
-        Text(formatMoney(amount),
-            style: const TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.w800)),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: alignEnd ? Alignment.centerRight : Alignment.centerLeft,
+          child: Text(formatMoney(amount),
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800)),
+        ),
       ],
     );
   }
