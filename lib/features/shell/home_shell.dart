@@ -6,8 +6,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/deep_link.dart';
 import '../../core/glass.dart';
+import '../../core/home_widget_service.dart';
 import '../../data/expense_repository.dart';
 import '../../data/recurring_repository.dart';
+import '../../domain/models/expense.dart';
 import '../accounts/accounts_screen.dart';
 import '../analysis/analysis_screen.dart';
 import '../auth/set_password_sheet.dart';
@@ -80,6 +82,11 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       if (next) {
         WidgetsBinding.instance.addPostFrameCallback((_) => _openVoiceAdd());
       }
+    });
+    // Keep the home-screen widget in sync whenever expenses load or change.
+    ref.listen<AsyncValue<List<Expense>>>(expensesProvider, (_, next) {
+      final data = next.asData?.value;
+      if (data != null) HomeWidgetService.push(data);
     });
     final dlDebug = ref.watch(deepLinkDebugProvider);
     return AppBackground(
