@@ -18,6 +18,7 @@ import '../calendar/calendar_screen.dart';
 import '../category/categories_screen.dart';
 import '../recurring/scheduled_screen.dart';
 import 'excel_export.dart';
+import 'reminders_sheet.dart';
 
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
@@ -109,6 +110,10 @@ class MoreScreen extends ConsumerWidget {
                     'Transactions by day',
                     () => Navigator.of(context).push(MaterialPageRoute(
                         builder: (_) => const CalendarScreen()))),
+                const Divider(height: 1),
+                _tile(context, Icons.notifications_none, 'Reminders',
+                    'Daily nudge to log expenses',
+                    () => showRemindersSheet(context)),
                 const Divider(height: 1),
                 _tile(context, Icons.brightness_6_outlined, 'Appearance',
                     themeModeLabel(mode), () => _pickTheme(context, ref, mode)),

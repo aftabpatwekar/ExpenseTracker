@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
 import 'core/app_prefs.dart';
 import 'core/env.dart';
+import 'core/notifications.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +20,8 @@ Future<void> main() async {
     // The legacy "anon" key is passed here as the publishable client key.
     publishableKey: Env.supabaseAnonKey,
   );
+
+  await NotificationService.init();
 
   final prefs = await SharedPreferences.getInstance();
 
