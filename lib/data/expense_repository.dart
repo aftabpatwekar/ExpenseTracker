@@ -35,6 +35,7 @@ class ExpenseRepository {
     String type = 'expense',
     String? accountId,
     List<String> tags = const [],
+    String? receiptUrl,
   }) async {
     // RLS requires user_id == auth.uid() on insert.
     final uid = _client.auth.currentUser!.id;
@@ -48,6 +49,7 @@ class ExpenseRepository {
       'type': type,
       'account_id': accountId,
       'tags': tags,
+      'receipt_url': receiptUrl,
     });
   }
 

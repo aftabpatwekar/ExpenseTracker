@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 import '../../core/format.dart';
 import '../../data/account_repository.dart';
 import '../../data/category_repository.dart';
 import '../../data/expense_repository.dart';
+import '../../data/receipt_repository.dart';
 import '../../domain/models/account.dart';
 import '../../domain/models/expense.dart';
 import '../../domain/models/expense_category.dart';
@@ -48,6 +50,8 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
   bool _speechReady = false;
   bool _speechInitTried = false;
   String? _error;
+  String? _receiptPath; // storage path once a receipt is uploaded
+  bool _uploadingReceipt = false;
 
   @override
   void initState() {
@@ -159,6 +163,57 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
     });
   }
 
+  Future<void> _pickReceipt() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Take a photo'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from gallery'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+    final picked = await ImagePicker()
+        .pickImage(source: source, imageQuality: 60, maxWidth: 1600);
+    if (picked == null) return;
+    setState(() {
+      _uploadingReceipt = true;
+      _error = null;
+    });
+    try {
+      final bytes = await picked.readAsBytes();
+      final ext = picked.name.toLowerCase().endsWith('.png') ? 'png' : 'jpg';
+      final path =
+          await ref.read(receiptRepositoryProvider).upload(bytes, ext: ext);
+      if (mounted) {
+        setState(() {
+          _receiptPath = path;
+          _uploadingReceipt = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _uploadingReceipt = false;
+          _error = 'Could not upload the receipt. Check your connection.';
+        });
+      }
+    }
+  }
+
   Future<void> _save(List<ExpenseCategory> cats, String? accountId) async {
     final amt = double.tryParse(_amount.text.trim()) ?? 0;
     if (amt <= 0) {
@@ -179,6 +234,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
             type: _type,
             accountId: accountId,
             tags: _tags,
+            receiptUrl: _receiptPath,
           );
       ref.invalidate(expensesProvider);
       if (mounted) Navigator.of(context).pop();
@@ -381,6 +437,40 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
                   ],
                 ),
               ],
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Receipt', style: theme.textTheme.labelLarge),
+              ),
+              const SizedBox(height: 8),
+              if (_receiptPath == null)
+                OutlinedButton.icon(
+                  onPressed: _uploadingReceipt ? null : _pickReceipt,
+                  icon: _uploadingReceipt
+                      ? const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.attach_file),
+                  label: Text(_uploadingReceipt
+                      ? 'Uploading…'
+                      : 'Attach a receipt photo'),
+                  style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14)),
+                )
+              else
+                Row(
+                  children: [
+                    Icon(Icons.check_circle,
+                        color: theme.colorScheme.primary, size: 20),
+                    const SizedBox(width: 8),
+                    const Expanded(child: Text('Receipt attached')),
+                    TextButton(
+                      onPressed: () => setState(() => _receiptPath = null),
+                      child: const Text('Remove'),
+                    ),
+                  ],
+                ),
               if (_error != null) ...[
                 const SizedBox(height: 14),
                 Text(_error!, style: TextStyle(color: theme.colorScheme.error)),

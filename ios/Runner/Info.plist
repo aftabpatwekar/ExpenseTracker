@@ -8,6 +8,10 @@
 	<string>Used to capture your voice when you log an expense by speaking.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Turns your spoken expense into text so it can be logged.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Used to photograph receipts to attach to your expenses.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Lets you attach a saved receipt photo to an expense.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

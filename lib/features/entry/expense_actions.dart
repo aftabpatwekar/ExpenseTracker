@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format.dart';
 import '../../data/expense_repository.dart';
+import '../../data/receipt_repository.dart';
 import '../../domain/models/expense.dart';
 
 /// Tap a transaction → this sheet. Delete is a *soft* delete with an Undo.
@@ -50,6 +51,10 @@ class _ExpenseActionsSheet extends ConsumerWidget {
                 ],
               ),
             ],
+            if (expense.receiptUrl != null) ...[
+              const SizedBox(height: 16),
+              _ReceiptPreview(path: expense.receiptUrl!),
+            ],
             const SizedBox(height: 20),
             FilledButton.tonalIcon(
               style: FilledButton.styleFrom(
@@ -83,6 +88,74 @@ class _ExpenseActionsSheet extends ConsumerWidget {
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Cancel')),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Shows a receipt thumbnail (via a signed URL); tap to view full-screen.
+class _ReceiptPreview extends ConsumerWidget {
+  final String path;
+  const _ReceiptPreview({required this.path});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final urlFuture = ref.read(receiptRepositoryProvider).signedUrl(path);
+    return FutureBuilder<String>(
+      future: urlFuture,
+      builder: (context, snap) {
+        if (snap.connectionState != ConnectionState.done) {
+          return const SizedBox(
+              height: 140, child: Center(child: CircularProgressIndicator()));
+        }
+        if (!snap.hasData) {
+          return Text('Receipt unavailable',
+              style: TextStyle(color: theme.colorScheme.outline));
+        }
+        final url = snap.data!;
+        return GestureDetector(
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => _ReceiptViewer(url: url),
+          )),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.network(
+              url,
+              height: 160,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => Container(
+                height: 160,
+                color: theme.colorScheme.surfaceContainerHighest,
+                child: const Center(child: Icon(Icons.broken_image_outlined)),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ReceiptViewer extends StatelessWidget {
+  final String url;
+  const _ReceiptViewer({required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          minScale: 0.5,
+          maxScale: 4,
+          child: Image.network(url),
         ),
       ),
     );

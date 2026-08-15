@@ -11,6 +11,7 @@ class Expense {
   final String type;
   final String? accountId;
   final List<String> tags;
+  final String? receiptUrl; // storage path in the private 'receipts' bucket
 
   const Expense({
     required this.id,
@@ -23,6 +24,7 @@ class Expense {
     this.type = 'expense',
     this.accountId,
     this.tags = const [],
+    this.receiptUrl,
   });
 
   bool get isIncome => type == 'income';
@@ -46,5 +48,6 @@ class Expense {
                 ?.map((e) => e.toString())
                 .toList(growable: false) ??
             const [],
+        receiptUrl: m['receipt_url'] as String?,
       );
 }
