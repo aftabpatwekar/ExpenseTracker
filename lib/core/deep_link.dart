@@ -21,48 +21,32 @@ class PendingAddNotifier extends Notifier<bool> {
 final pendingAddProvider =
     NotifierProvider<PendingAddNotifier, bool>(PendingAddNotifier.new);
 
-/// TEMPORARY on-screen diagnostic: shows what the deep-link layer receives, so
-/// we can debug Back-Tap on a physical device without a console. Remove later.
-class DeepLinkDebug extends Notifier<String> {
-  @override
-  String build() => 'waiting…';
-  void set(String value) => state = value;
-}
-
-final deepLinkDebugProvider =
-    NotifierProvider<DeepLinkDebug, String>(DeepLinkDebug.new);
-
 /// App-lifetime listener for incoming deep links. Instantiated once from the
 /// app root ([ExpenseApp]) so it is never disposed mid-session.
 final deepLinkListenerProvider = Provider<DeepLinkListener>((ref) {
   final listener = DeepLinkListener(
     onAdd: () => ref.read(pendingAddProvider.notifier).set(true),
-    onDebug: (s) => ref.read(deepLinkDebugProvider.notifier).set(s),
   );
   ref.onDispose(listener.dispose);
   return listener;
 });
 
 class DeepLinkListener {
-  DeepLinkListener({required this.onAdd, required this.onDebug}) {
+  DeepLinkListener({required this.onAdd}) {
     _appLinks = AppLinks();
-    onDebug('listening');
     // Warm start: links delivered while the app is already running.
-    _sub = _appLinks.uriLinkStream.listen((uri) => _handle(uri, 'stream'));
+    _sub = _appLinks.uriLinkStream.listen(_handle);
     // Cold start: the link that launched the app.
     _appLinks.getInitialLink().then((uri) {
-      onDebug('initial=${uri ?? "null"}');
-      if (uri != null) _handle(uri, 'initial');
+      if (uri != null) _handle(uri);
     });
   }
 
   final void Function() onAdd;
-  final void Function(String) onDebug;
   late final AppLinks _appLinks;
   StreamSubscription<Uri>? _sub;
 
-  void _handle(Uri uri, String src) {
-    onDebug('$src=$uri host=${uri.host}');
+  void _handle(Uri uri) {
     // expensetracker://add  → host == 'add'. Also accept .../add path forms.
     if (uri.host == 'add' || uri.pathSegments.contains('add')) {
       onAdd();
