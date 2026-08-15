@@ -150,7 +150,7 @@ class MoreScreen extends ConsumerWidget {
                     accentName, () => _pickAccent(context, ref)),
                 const Divider(height: 1),
                 _tile(context, Icons.info_outline, 'About',
-                    'Expense Tracker · v1.0', null),
+                    'Molbhav · v1.0', null),
               ],
             ),
           ),

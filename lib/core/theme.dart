@@ -129,11 +129,13 @@ ThemeData buildTheme(Brightness brightness, [Color accent = kMarigold]) {
           ?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.3),
       titleMedium: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
     ),
-    appBarTheme: const AppBarTheme(
+    appBarTheme: AppBarTheme(
       backgroundColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
-      centerTitle: false,
+      centerTitle: true,
+      titleTextStyle: textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w700, letterSpacing: 0.8, fontSize: 15),
     ),
     dividerTheme: DividerThemeData(color: scheme.outlineVariant, thickness: 1),
     chipTheme: ChipThemeData(

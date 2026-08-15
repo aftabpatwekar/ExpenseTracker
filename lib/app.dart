@@ -23,15 +23,14 @@ class ExpenseApp extends ConsumerWidget {
       theme: buildTheme(Brightness.light, accent),
       darkTheme: buildTheme(Brightness.dark, accent),
       routerConfig: router,
-      // Clamp system font scaling so a large device font setting (common on
-      // Android) can't overflow tight layouts — keeps parity with iOS.
+      // Compact type scale. A large device font setting (common on Android)
+      // made everything oversized; cap at the design size and tighten to 0.9.
       builder: (context, child) {
         final mq = MediaQuery.of(context);
+        final device = mq.textScaler.scale(1.0);
+        final eff = (device < 1.0 ? device : 1.0) * 0.9;
         return MediaQuery(
-          data: mq.copyWith(
-            textScaler: mq.textScaler
-                .clamp(minScaleFactor: 1.0, maxScaleFactor: 1.15),
-          ),
+          data: mq.copyWith(textScaler: TextScaler.linear(eff)),
           child: child!,
         );
       },
