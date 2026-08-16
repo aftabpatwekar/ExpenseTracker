@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:record/record.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 import '../../core/format.dart';
@@ -9,6 +12,7 @@ import '../../data/category_repository.dart';
 import '../../data/expense_repository.dart';
 import '../../data/group_repository.dart';
 import '../../data/receipt_repository.dart';
+import '../../data/transcription_service.dart';
 import '../../domain/models/group.dart';
 import '../../domain/models/account.dart';
 import '../../domain/models/expense.dart';
@@ -68,6 +72,9 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
   final _note = TextEditingController();
   final _tagInput = TextEditingController();
   final SpeechToText _speech = SpeechToText();
+  final AudioRecorder _recorder = AudioRecorder(); // web voice (record → cloud)
+  bool _recording = false;
+  bool _transcribing = false;
 
   final List<String> _tags = [];
   String? _categoryId;
@@ -101,7 +108,9 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
       _groupId = widget.groupId ?? init.groupId;
     }
     // Opened via Back-Tap / "Speak expense" → start listening immediately.
-    if (widget.startVoice) {
+    // Native only: on web the mic must start from a direct tap (browser gesture
+    // rules), so the sheet just opens ready and the user taps the mic.
+    if (widget.startVoice && !kIsWeb) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         final cats = await ref.read(categoriesProvider.future);
         if (mounted) _toggleListen(cats);
@@ -112,6 +121,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
   @override
   void dispose() {
     _speech.cancel();
+    _recorder.dispose();
     _quick.dispose();
     _amount.dispose();
     _note.dispose();
@@ -131,6 +141,60 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
       _note.text = parsed.note;
       _categoryId = parsed.categoryId;
     });
+  }
+
+  /// Web voice: record audio in the browser → send to the transcribe Edge
+  /// Function → parse. Works where the browser has no speech API (iOS Safari).
+  Future<void> _toggleWebVoice(List<ExpenseCategory> cats) async {
+    if (_transcribing) return;
+    if (_recording) {
+      setState(() {
+        _recording = false;
+        _transcribing = true;
+      });
+      try {
+        final path = await _recorder.stop();
+        if (path == null) {
+          if (mounted) setState(() => _transcribing = false);
+          return;
+        }
+        // On web, `path` is a blob: URL — fetch its bytes and MIME type.
+        final blob = await http.get(Uri.parse(path));
+        final ct = blob.headers['content-type'] ?? 'audio/webm';
+        final text = await ref
+            .read(transcriptionServiceProvider)
+            .transcribe(blob.bodyBytes, contentType: ct);
+        if (!mounted) return;
+        if (text.isNotEmpty) {
+          _quick.text = text;
+          _onQuickChanged(text, cats);
+        } else {
+          setState(() => _error = "Didn't catch that — try again or type it.");
+        }
+      } catch (_) {
+        if (mounted) {
+          setState(() =>
+              _error = 'Voice unavailable. Type it, or check the setup.');
+        }
+      } finally {
+        if (mounted) setState(() => _transcribing = false);
+      }
+      return;
+    }
+    // Start recording.
+    if (!await _recorder.hasPermission()) {
+      if (mounted) {
+        setState(() => _error = 'Microphone permission is needed for voice.');
+      }
+      return;
+    }
+    await _recorder.start(const RecordConfig(), path: 'molbhav');
+    if (mounted) {
+      setState(() {
+        _recording = true;
+        _error = null;
+      });
+    }
   }
 
   Future<void> _toggleListen(List<ExpenseCategory> cats) async {
@@ -361,15 +425,23 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
                 onSelectionChanged: (s) => setState(() => _type = s.first),
               ),
               const SizedBox(height: 8),
-              Text(
-                _listening
-                    ? 'Listening… say something like “250 groceries veggies”'
-                    : 'Tap the mic and speak, or type naturally',
-                style: theme.textTheme.bodySmall?.copyWith(
-                    color: _listening
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.outline),
-              ),
+              Builder(builder: (context) {
+                final active = kIsWeb ? _recording : _listening;
+                final hint = _transcribing
+                    ? 'Transcribing…'
+                    : active
+                        ? (kIsWeb
+                            ? 'Recording… tap ⏹ when done'
+                            : 'Listening… say “250 groceries veggies”')
+                        : 'Tap the mic and speak, or type naturally';
+                return Text(
+                  hint,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                      color: (active || _transcribing)
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.outline),
+                );
+              }),
               const SizedBox(height: 16),
               TextField(
                 controller: _quick,
@@ -378,14 +450,28 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
                 decoration: InputDecoration(
                   hintText: '250 groceries weekly veggies',
                   prefixIcon: const Icon(Icons.bolt_outlined),
-                  suffixIcon: IconButton(
-                    icon: Icon(_listening ? Icons.stop_circle : Icons.mic_none),
-                    color: _listening
-                        ? theme.colorScheme.error
-                        : theme.colorScheme.primary,
-                    tooltip: _listening ? 'Stop' : 'Speak',
-                    onPressed: () => _toggleListen(cats),
-                  ),
+                  suffixIcon: _transcribing
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                              width: 18,
+                              height: 18,
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2)))
+                      : IconButton(
+                          icon: Icon((kIsWeb ? _recording : _listening)
+                              ? Icons.stop_circle
+                              : Icons.mic_none),
+                          color: (kIsWeb ? _recording : _listening)
+                              ? theme.colorScheme.error
+                              : theme.colorScheme.primary,
+                          tooltip: (kIsWeb ? _recording : _listening)
+                              ? 'Stop'
+                              : 'Speak',
+                          onPressed: () => kIsWeb
+                              ? _toggleWebVoice(cats)
+                              : _toggleListen(cats),
+                        ),
                   border: const OutlineInputBorder(),
                 ),
               ),
