@@ -96,7 +96,8 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         bottomNavigationBar: GlassBottomNav(
           index: _index,
           onTap: (i) => setState(() => _index = i),
-          onAdd: () => showAddExpenseSheet(context),
+          // Voice is our USP — the center button starts a voice-add.
+          onAdd: () => showAddExpenseSheet(context, startVoice: true),
         ),
       ),
     );

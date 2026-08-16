@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
@@ -37,7 +38,7 @@ class GlassBottomNav extends StatelessWidget {
                 children: [
                   _item(context, Icons.home_rounded, 'Home', 0),
                   _item(context, Icons.pie_chart_rounded, 'Stats', 1),
-                  Expanded(child: Center(child: _addButton(context))),
+                  Expanded(child: Center(child: _MorphingAddButton(onTap: onAdd))),
                   _item(context, Icons.account_balance_wallet_rounded, 'Accounts', 2),
                   _item(context, Icons.more_horiz_rounded, 'More', 3),
                 ],
@@ -77,24 +78,86 @@ class GlassBottomNav extends StatelessWidget {
     );
   }
 
-  Widget _addButton(BuildContext context) {
+}
+
+/// Center action button. Voice is our USP, so it morphs between a "+" and a mic
+/// every few seconds (spin + fade) with a gentle pulsing glow. Tap OR long-press
+/// starts a voice-add.
+class _MorphingAddButton extends StatefulWidget {
+  final VoidCallback onTap;
+  const _MorphingAddButton({required this.onTap});
+
+  @override
+  State<_MorphingAddButton> createState() => _MorphingAddButtonState();
+}
+
+class _MorphingAddButtonState extends State<_MorphingAddButton>
+    with SingleTickerProviderStateMixin {
+  Timer? _timer;
+  bool _mic = false;
+  late final AnimationController _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1600))
+      ..repeat(reverse: true);
+    _timer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (mounted) setState(() => _mic = !_mic);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
+    final onAcc = onAccentOf(primary);
     return GestureDetector(
-      onTap: onAdd,
-      child: Container(
-        width: 52,
-        height: 52,
-        decoration: BoxDecoration(
-          gradient: accentGradient(context),
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-                color: primary.withAlpha(130),
-                blurRadius: 16,
-                offset: const Offset(0, 6)),
-          ],
+      onTap: widget.onTap,
+      onLongPress: widget.onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedBuilder(
+        animation: _pulse,
+        builder: (context, child) => Container(
+          width: 54,
+          height: 54,
+          decoration: BoxDecoration(
+            gradient: accentGradient(context),
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: primary.withAlpha(120),
+                blurRadius: 14 + _pulse.value * 12,
+                spreadRadius: _pulse.value * 2,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: child,
         ),
-        child: Icon(Icons.add, color: onAccentOf(primary), size: 28),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 450),
+          transitionBuilder: (child, anim) => RotationTransition(
+            turns: Tween<double>(begin: 0.6, end: 1.0).animate(anim),
+            child: ScaleTransition(
+              scale: anim,
+              child: FadeTransition(opacity: anim, child: child),
+            ),
+          ),
+          child: Icon(
+            _mic ? Icons.mic_rounded : Icons.add,
+            key: ValueKey(_mic),
+            color: onAcc,
+            size: 28,
+          ),
+        ),
       ),
     );
   }

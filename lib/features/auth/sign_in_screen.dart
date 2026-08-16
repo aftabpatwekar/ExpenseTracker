@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/glass.dart';
+import '../../core/links.dart';
 import '../../core/theme.dart';
 import 'auth_repository.dart';
 
@@ -267,6 +268,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                           ? 'Have an account? Sign in'
                           : 'New here? Create an account'),
                     ),
+                    const SizedBox(height: AppSpace.sm),
+                    _LegalLine(),
                   ],
                 ),
               ),
@@ -274,6 +277,33 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// "By continuing you agree to our Terms & Privacy Policy" with tappable links.
+class _LegalLine extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline);
+    final link = theme.textTheme.bodySmall
+        ?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w600);
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text('By continuing you agree to our ', style: muted),
+        GestureDetector(
+          onTap: () => openExternal(context, kTermsUrl),
+          child: Text('Terms', style: link),
+        ),
+        Text(' & ', style: muted),
+        GestureDetector(
+          onTap: () => openExternal(context, kPrivacyUrl),
+          child: Text('Privacy Policy', style: link),
+        ),
+      ],
     );
   }
 }

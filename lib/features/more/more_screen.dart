@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../core/app_prefs.dart';
 import '../../core/glass.dart';
+import '../../core/links.dart';
 import '../../core/theme.dart';
 import '../../data/category_repository.dart';
 import '../../data/expense_repository.dart';
@@ -145,6 +146,14 @@ class MoreScreen extends ConsumerWidget {
                 const Divider(height: 1),
                 _tile(context, Icons.palette_outlined, 'Accent color',
                     accentName, () => _pickAccent(context, ref)),
+                const Divider(height: 1),
+                _tile(context, Icons.description_outlined, 'Terms & Conditions',
+                    'Read on the web',
+                    () => openExternal(context, kTermsUrl)),
+                const Divider(height: 1),
+                _tile(context, Icons.privacy_tip_outlined, 'Privacy Policy',
+                    'How your data is handled',
+                    () => openExternal(context, kPrivacyUrl)),
                 const Divider(height: 1),
                 _tile(context, Icons.info_outline, 'About',
                     'Molbhav · v1.0', null),
