@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,7 +22,14 @@ Future<void> main() async {
     publishableKey: Env.supabaseAnonKey,
   );
 
-  await NotificationService.init();
+  // Local notifications aren't supported on web — skip so the PWA can boot.
+  if (!kIsWeb) {
+    try {
+      await NotificationService.init();
+    } catch (_) {
+      // Non-fatal: continue without local notifications.
+    }
+  }
 
   final prefs = await SharedPreferences.getInstance();
 

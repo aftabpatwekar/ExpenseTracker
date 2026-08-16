@@ -1,15 +1,18 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 /// Local notifications — currently a daily "log your expenses" reminder.
+/// All methods no-op on web (unsupported there).
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
   static const int _dailyId = 1001;
 
   static Future<void> init() async {
+    if (kIsWeb) return;
     tzdata.initializeTimeZones();
     try {
       final info = await FlutterTimezone.getLocalTimezone();
@@ -29,6 +32,7 @@ class NotificationService {
   }
 
   static Future<bool> requestPermission() async {
+    if (kIsWeb) return false;
     final android = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
     final ios = _plugin.resolvePlatformSpecificImplementation<
@@ -40,6 +44,7 @@ class NotificationService {
   }
 
   static Future<void> scheduleDaily(int hour, int minute) async {
+    if (kIsWeb) return;
     await _plugin.zonedSchedule(
       id: _dailyId,
       title: 'Log your expenses',
@@ -59,7 +64,10 @@ class NotificationService {
     );
   }
 
-  static Future<void> cancelDaily() => _plugin.cancel(id: _dailyId);
+  static Future<void> cancelDaily() async {
+    if (kIsWeb) return;
+    await _plugin.cancel(id: _dailyId);
+  }
 
   static tz.TZDateTime _next(int hour, int minute) {
     final now = tz.TZDateTime.now(tz.local);

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -96,8 +97,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         bottomNavigationBar: GlassBottomNav(
           index: _index,
           onTap: (i) => setState(() => _index = i),
-          // Voice is our USP — the center button starts a voice-add.
-          onAdd: () => showAddExpenseSheet(context, startVoice: true),
+          // Voice is our USP — the center button starts a voice-add (native).
+          // On web (esp. iOS Safari, no speech API) it opens ready for typing.
+          onAdd: () => showAddExpenseSheet(context, startVoice: !kIsWeb),
         ),
       ),
     );
