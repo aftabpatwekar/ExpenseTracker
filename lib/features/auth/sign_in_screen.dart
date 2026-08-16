@@ -1,5 +1,5 @@
-import 'dart:io' show Platform;
-
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -241,7 +241,9 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                   ? null
                                   : () => _oauth(OAuthProvider.google),
                             ),
-                            if (Platform.isIOS) ...[
+                            if (!kIsWeb &&
+                                defaultTargetPlatform ==
+                                    TargetPlatform.iOS) ...[
                               const SizedBox(height: AppSpace.sm),
                               _SocialButton(
                                 label: 'Continue with Apple',
