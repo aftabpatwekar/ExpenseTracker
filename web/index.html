@@ -36,15 +36,88 @@
       0%, 100% { opacity: .65; transform: scale(.95); }
       50% { opacity: 1; transform: scale(1); }
     }
+    /* Install banner */
+    #installBar {
+      position: fixed; left: 12px; right: 12px; top: 12px; z-index: 10000;
+      display: none; align-items: center; gap: 10px;
+      background: #141822; color: #F3EFE6;
+      border: 1px solid rgba(255,255,255,.12); border-radius: 14px;
+      padding: 10px 12px; box-shadow: 0 10px 30px rgba(0,0,0,.45);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    #installBar img { width: 34px; height: 34px; border-radius: 9px; }
+    #installBar .txt { flex: 1; font-size: 13px; line-height: 1.35; }
+    #installBar .txt b { color: #FFC24A; }
+    #installBar button {
+      border: none; border-radius: 999px; font-family: inherit;
+      font-weight: 700; font-size: 13px; cursor: pointer;
+    }
+    #installGo { background: #F2A20C; color: #12233F; padding: 8px 16px; }
+    #installClose { background: transparent; color: #98A0B0; padding: 6px 8px; font-size: 15px; }
   </style>
 </head>
 <body>
   <div id="splash"><img src="icons/Icon-192.png" alt="Molbhav"></div>
+
+  <div id="installBar">
+    <img src="icons/Icon-192.png" alt="">
+    <div class="txt" id="installText">Install Molbhav for a full-screen app.</div>
+    <button id="installGo">Install</button>
+    <button id="installClose" aria-label="Dismiss">✕</button>
+  </div>
+
   <script>
     window.addEventListener('flutter-first-frame', function () {
       var s = document.getElementById('splash');
       if (s) s.remove();
     });
+
+    // ---- PWA install helper ----
+    (function () {
+      var bar = document.getElementById('installBar');
+      var go = document.getElementById('installGo');
+      var closeBtn = document.getElementById('installClose');
+      var text = document.getElementById('installText');
+      var deferred = null;
+
+      var standalone = window.matchMedia('(display-mode: standalone)').matches
+        || window.navigator.standalone === true;
+      if (standalone || localStorage.getItem('molbhav_install_dismissed')) return;
+
+      var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+      // Android / desktop Chrome & Edge: real one-tap install.
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        deferred = e;
+        text.innerHTML = 'Install Molbhav for a full-screen app.';
+        go.style.display = 'inline-block';
+        bar.style.display = 'flex';
+      });
+      go.addEventListener('click', async function () {
+        if (!deferred) return;
+        bar.style.display = 'none';
+        deferred.prompt();
+        try { await deferred.userChoice; } catch (_) {}
+        deferred = null;
+      });
+      closeBtn.addEventListener('click', function () {
+        bar.style.display = 'none';
+        localStorage.setItem('molbhav_install_dismissed', '1');
+      });
+      window.addEventListener('appinstalled', function () {
+        bar.style.display = 'none';
+      });
+
+      // iOS Safari has no install prompt — show the manual step.
+      if (isIOS) {
+        setTimeout(function () {
+          go.style.display = 'none';
+          text.innerHTML = 'To install: tap <b>Share</b>, then <b>Add to Home Screen</b>.';
+          bar.style.display = 'flex';
+        }, 2500);
+      }
+    })();
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
