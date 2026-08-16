@@ -46,3 +46,4 @@ coverage/
 # ---- Symbolication / obfuscation ----
 app.*.symbols
 app.*.map.json
+supabase/.temp/

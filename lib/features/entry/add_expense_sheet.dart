@@ -181,19 +181,29 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
       }
       return;
     }
-    // Start recording.
-    if (!await _recorder.hasPermission()) {
-      if (mounted) {
-        setState(() => _error = 'Microphone permission is needed for voice.');
+    // Start recording. Pick an encoder the browser's MediaRecorder supports
+    // (Chrome: Opus/webm; Safari: AAC/mp4) — the default AAC fails on Chrome.
+    try {
+      if (!await _recorder.hasPermission()) {
+        if (mounted) {
+          setState(() => _error = 'Microphone permission is needed for voice.');
+        }
+        return;
       }
-      return;
-    }
-    await _recorder.start(const RecordConfig(), path: 'molbhav');
-    if (mounted) {
-      setState(() {
-        _recording = true;
-        _error = null;
-      });
+      final encoder = await _recorder.isEncoderSupported(AudioEncoder.opus)
+          ? AudioEncoder.opus
+          : await _recorder.isEncoderSupported(AudioEncoder.aacLc)
+              ? AudioEncoder.aacLc
+              : AudioEncoder.wav;
+      await _recorder.start(RecordConfig(encoder: encoder), path: 'molbhav');
+      if (mounted) {
+        setState(() {
+          _recording = true;
+          _error = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _error = 'Could not start the mic: $e');
     }
   }
 
