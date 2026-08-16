@@ -7,8 +7,11 @@ import '../../core/hex.dart';
 import '../../core/theme.dart';
 import '../../data/account_repository.dart';
 import '../../data/expense_repository.dart';
+import '../../data/group_repository.dart';
 import '../../domain/models/account.dart';
 import '../../domain/models/expense.dart';
+import '../../domain/models/group.dart';
+import '../groups/group_flow_card.dart';
 
 const List<String> _palette = [
   '#1baf7a', '#2a78d6', '#eb6834', '#eda100',
@@ -34,13 +37,18 @@ class AccountsScreen extends ConsumerWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
         children: [
-          GlassHeader(
-            title: 'Accounts',
-            trailing: IconButton.filledTonal(
-              onPressed: () => _edit(context, null),
-              icon: const Icon(Icons.add),
-              tooltip: 'Add account',
-            ),
+          Row(
+            children: [
+              Text('Accounts',
+                  style: theme.textTheme.headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.w800)),
+              const Spacer(),
+              IconButton.filledTonal(
+                onPressed: () => _edit(context, null),
+                icon: const Icon(Icons.add),
+                tooltip: 'Add account',
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           Container(
@@ -129,6 +137,24 @@ class AccountsScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+          Builder(builder: (context) {
+            final groups =
+                ref.watch(groupsProvider).asData?.value ?? const <Group>[];
+            if (groups.isEmpty) return const SizedBox.shrink();
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 20),
+                Text('Shared groups', style: theme.textTheme.titleMedium),
+                const SizedBox(height: 12),
+                for (final g in groups)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: GroupFlowCard(group: g),
+                  ),
+              ],
+            );
+          }),
         ],
       ),
     );

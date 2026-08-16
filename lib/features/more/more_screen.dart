@@ -43,9 +43,11 @@ class MoreScreen extends ConsumerWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
         children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
-            child: GlassHeader(title: 'More'),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text('More',
+                style: theme.textTheme.headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.w800)),
           ),
           GlassCard(
             onTap: () => Navigator.of(context).push(

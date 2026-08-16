@@ -9,11 +9,14 @@ import '../../core/hex.dart';
 import '../../core/theme.dart';
 import '../../data/category_repository.dart';
 import '../../data/expense_repository.dart';
+import '../../data/group_repository.dart';
 import '../../data/profile_repository.dart';
 import '../../domain/models/expense.dart';
 import '../../domain/models/expense_category.dart';
+import '../../domain/models/group.dart';
 import '../entry/add_expense_sheet.dart';
 import '../entry/expense_actions.dart';
+import '../groups/group_flow_card.dart';
 import '../search/search_screen.dart';
 import '../txns/transactions_screen.dart';
 import 'daily_tip.dart';
@@ -220,11 +223,13 @@ class _Content extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 16),
-        _CashFlowCard(
-          spending: spending,
-          income: income,
-          periodLabel: period.label,
-          onTapPeriod: () => _showPeriodPicker(context, ref),
+        _CashFlowCarousel(
+          personal: _CashFlowCard(
+            spending: spending,
+            income: income,
+            periodLabel: period.label,
+            onTapPeriod: () => _showPeriodPicker(context, ref),
+          ),
         )
             .animate()
             .fadeIn(duration: 350.ms)
@@ -285,6 +290,72 @@ class _Content extends ConsumerWidget {
               ],
             ),
           ).animate().fadeIn(delay: 300.ms, duration: 350.ms),
+      ],
+    );
+  }
+}
+
+/// Swipeable hero: page 0 = personal cash flow, then one card per shared group.
+class _CashFlowCarousel extends ConsumerStatefulWidget {
+  final Widget personal;
+  const _CashFlowCarousel({required this.personal});
+
+  @override
+  ConsumerState<_CashFlowCarousel> createState() => _CashFlowCarouselState();
+}
+
+class _CashFlowCarouselState extends ConsumerState<_CashFlowCarousel> {
+  final _pc = PageController();
+  int _page = 0;
+
+  @override
+  void dispose() {
+    _pc.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final groups =
+        ref.watch(groupsProvider).asData?.value ?? const <Group>[];
+    final pages = <Widget>[
+      widget.personal,
+      for (final g in groups) GroupFlowCard(group: g),
+    ];
+    return Column(
+      children: [
+        SizedBox(
+          height: 210,
+          child: PageView.builder(
+            controller: _pc,
+            itemCount: pages.length,
+            onPageChanged: (i) => setState(() => _page = i),
+            itemBuilder: (_, i) => pages[i],
+          ),
+        ),
+        if (pages.length > 1)
+          Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (var i = 0; i < pages.length; i++)
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    width: i == _page ? 20 : 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: i == _page
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.outline.withAlpha(90),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+              ],
+            ),
+          ),
       ],
     );
   }

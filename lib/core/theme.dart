@@ -133,9 +133,8 @@ ThemeData buildTheme(Brightness brightness, [Color accent = kMarigold]) {
       backgroundColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
-      centerTitle: true,
-      titleTextStyle: textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w700, letterSpacing: 0.8, fontSize: 15),
+      centerTitle: false,
+      titleTextStyle: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
     ),
     dividerTheme: DividerThemeData(color: scheme.outlineVariant, thickness: 1),
     chipTheme: ChipThemeData(

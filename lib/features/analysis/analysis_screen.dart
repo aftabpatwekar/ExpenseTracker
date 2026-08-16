@@ -188,14 +188,20 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(vertical: AppSpace.sm),
-            child: GlassHeader(
-              title: 'Analysis',
-              trailing: _RoundIconButton(
-                icon: Icons.description_outlined,
-                tooltip: 'Reports',
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => const ReportsScreen())),
-              ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text('Analysis',
+                      style: theme.textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.w800)),
+                ),
+                _RoundIconButton(
+                  icon: Icons.description_outlined,
+                  tooltip: 'Reports',
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const ReportsScreen())),
+                ),
+              ],
             ),
           ),
           // The common glass slider.
