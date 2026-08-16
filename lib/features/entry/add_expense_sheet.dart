@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -75,6 +77,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
   final AudioRecorder _recorder = AudioRecorder(); // web voice (record → cloud)
   bool _recording = false;
   bool _transcribing = false;
+  Timer? _recordTimer; // auto-stop safety
 
   final List<String> _tags = [];
   String? _categoryId;
@@ -107,13 +110,21 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
       _receiptPath = init.receiptUrl;
       _groupId = widget.groupId ?? init.groupId;
     }
-    // Opened via Back-Tap / "Speak expense" → start listening immediately.
-    // Native only: on web the mic must start from a direct tap (browser gesture
-    // rules), so the sheet just opens ready and the user taps the mic.
-    if (widget.startVoice && !kIsWeb) {
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        final cats = await ref.read(categoriesProvider.future);
-        if (mounted) _toggleListen(cats);
+    // Opened via the mic button / Back-Tap → start capturing immediately.
+    if (widget.startVoice) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (kIsWeb) {
+          // Don't await before getUserMedia — the browser needs the tap's
+          // activation to still be live. Categories are already cached here.
+          final cats = ref.read(categoriesProvider).asData?.value ??
+              const <ExpenseCategory>[];
+          _toggleWebVoice(cats);
+        } else {
+          ref.read(categoriesProvider.future).then((cats) {
+            if (mounted) _toggleListen(cats);
+          });
+        }
       });
     }
   }
@@ -121,6 +132,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
   @override
   void dispose() {
     _speech.cancel();
+    _recordTimer?.cancel();
     _recorder.dispose();
     _quick.dispose();
     _amount.dispose();
@@ -148,6 +160,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
   Future<void> _toggleWebVoice(List<ExpenseCategory> cats) async {
     if (_transcribing) return;
     if (_recording) {
+      _recordTimer?.cancel();
       setState(() {
         _recording = false;
         _transcribing = true;
@@ -200,6 +213,11 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
         setState(() {
           _recording = true;
           _error = null;
+        });
+        // Safety: auto-stop + transcribe after 20s so it never runs away.
+        _recordTimer?.cancel();
+        _recordTimer = Timer(const Duration(seconds: 20), () {
+          if (_recording && mounted) _toggleWebVoice(cats);
         });
       }
     } catch (e) {

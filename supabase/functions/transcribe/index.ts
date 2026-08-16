@@ -32,7 +32,9 @@ Deno.serve(async (req) => {
 
   try {
     const dg = await fetch(
-      "https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&punctuate=true&language=en",
+      // numerals=true keeps "250" as digits; smart_format is OFF because it
+      // was turning "250 rupees" into currency like "$2.50".
+      "https://api.deepgram.com/v1/listen?model=nova-2&numerals=true&punctuate=false&language=en",
       {
         method: "POST",
         headers: { Authorization: `Token ${key}`, "Content-Type": contentType },
