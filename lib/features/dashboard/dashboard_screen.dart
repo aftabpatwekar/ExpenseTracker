@@ -14,6 +14,7 @@ import '../../data/profile_repository.dart';
 import '../../domain/models/expense.dart';
 import '../../domain/models/expense_category.dart';
 import '../../domain/models/group.dart';
+import '../engagement/engagement.dart';
 import '../entry/add_expense_sheet.dart';
 import '../entry/expense_actions.dart';
 import '../groups/group_flow_card.dart';
@@ -238,6 +239,11 @@ class _Content extends ConsumerWidget {
         const DailyTipCard()
             .animate()
             .fadeIn(delay: 80.ms, duration: 350.ms)
+            .slideY(begin: 0.1, end: 0),
+        const SizedBox(height: 14),
+        const ProgressCard()
+            .animate()
+            .fadeIn(delay: 120.ms, duration: 350.ms)
             .slideY(begin: 0.1, end: 0),
         const SizedBox(height: 14),
         if (periodExpenses.isNotEmpty) ...[

@@ -20,6 +20,7 @@ import '../../domain/models/account.dart';
 import '../../domain/models/expense.dart';
 import '../../domain/models/expense_category.dart';
 import '../../domain/services/expense_parser.dart';
+import '../engagement/engagement.dart';
 
 Future<void> showAddExpenseSheet(BuildContext context,
     {bool startVoice = false,
@@ -360,6 +361,9 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
       _saving = true;
       _error = null;
     });
+    final isAdd = !(widget.edit && widget.initial != null);
+    final oldCount =
+        ref.read(expensesProvider).asData?.value.length ?? 0;
     try {
       final repo = ref.read(expenseRepositoryProvider);
       if (widget.edit && widget.initial != null) {
@@ -398,6 +402,10 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
       if (_groupId != null) {
         ref.invalidate(groupExpensesProvider(_groupId!));
         ref.invalidate(groupBudgetProvider(_groupId!));
+      }
+      // Personal, non-group adds count toward streaks/milestones.
+      if (isAdd && _groupId == null) {
+        await maybeCelebrate(ref, oldCount + 1);
       }
       if (mounted) Navigator.of(context).pop();
     } catch (_) {

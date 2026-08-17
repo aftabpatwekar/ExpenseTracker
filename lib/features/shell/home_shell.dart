@@ -13,6 +13,7 @@ import '../../domain/models/expense.dart';
 import '../accounts/accounts_screen.dart';
 import '../analysis/analysis_screen.dart';
 import '../auth/set_password_sheet.dart';
+import '../engagement/engagement.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../entry/add_expense_sheet.dart';
 import '../more/more_screen.dart';
@@ -87,6 +88,16 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     ref.listen<AsyncValue<List<Expense>>>(expensesProvider, (_, next) {
       final data = next.asData?.value;
       if (data != null) HomeWidgetService.push(data);
+    });
+    // Celebrate expense-count milestones.
+    ref.listen<int?>(celebrationProvider, (_, milestone) {
+      if (milestone == null) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          showCelebration(context, milestone);
+          ref.read(celebrationProvider.notifier).set(null);
+        }
+      });
     });
     return AppBackground(
       child: Scaffold(
