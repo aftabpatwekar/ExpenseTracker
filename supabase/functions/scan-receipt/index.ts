@@ -1,7 +1,10 @@
-// Molbhav — receipt scanner. Client POSTs a photo (raw image bytes); we ask
-// OpenAI GPT-4o-mini (vision) for the total, merchant, and date, and return JSON.
+// Molbhav — receipt scanner. Client POSTs a photo (raw image bytes); we ask a
+// Groq vision model (free tier, OpenAI-compatible API) for the total, merchant,
+// and date, and return JSON.
 // Deploy:  supabase functions deploy scan-receipt
-// Set key: supabase secrets set OPENAI_API_KEY=sk-...
+// Set key: supabase secrets set GROQ_API_KEY=gsk_...
+// Optional override of the model:
+//          supabase secrets set GROQ_MODEL=meta-llama/llama-4-scout-17b-16e-instruct
 import { encodeBase64 } from "jsr:@std/encoding/base64";
 
 const cors = {
@@ -18,6 +21,20 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
+// The vision model may wrap its answer in a <think>…</think> reasoning block and
+// prose. Strip that and pull out the JSON object.
+function extractJson(text: string): Record<string, unknown> {
+  const t = text.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+  const start = t.indexOf("{");
+  const end = t.lastIndexOf("}");
+  if (start === -1 || end === -1 || end < start) return {};
+  try {
+    return JSON.parse(t.slice(start, end + 1));
+  } catch (_) {
+    return {};
+  }
+}
+
 const PROMPT =
   'You are reading a shopping/restaurant receipt or bill. Return ONLY a JSON ' +
   'object: {"amount": number|null, "merchant": string|null, "date": ' +
@@ -30,8 +47,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "Use POST" }, 405);
 
-  const key = Deno.env.get("OPENAI_API_KEY");
+  const key = Deno.env.get("GROQ_API_KEY");
   if (!key) return json({ error: "Receipt scanning not configured" }, 500);
+  const model = Deno.env.get("GROQ_MODEL") || "qwen/qwen3.6-27b";
 
   const contentType = req.headers.get("content-type") || "image/jpeg";
   const bytes = new Uint8Array(await req.arrayBuffer());
@@ -40,39 +58,39 @@ Deno.serve(async (req) => {
   const dataUrl = `data:${contentType};base64,${encodeBase64(bytes)}`;
 
   try {
-    const r = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
+    const r = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: PROMPT },
+                { type: "image_url", image_url: { url: dataUrl } },
+              ],
+            },
+          ],
+          // NB: no response_format — the vision model is a reasoning model that
+          // emits a <think> block, which strict JSON mode rejects. We strip the
+          // reasoning and extract the JSON object ourselves (see extractJson).
+          max_tokens: 800,
+          temperature: 0,
+        }),
       },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: PROMPT },
-              { type: "image_url", image_url: { url: dataUrl, detail: "low" } },
-            ],
-          },
-        ],
-        response_format: { type: "json_object" },
-        max_tokens: 200,
-        temperature: 0,
-      }),
-    });
+    );
     if (!r.ok) {
       return json({ error: "Scan failed", detail: await r.text() }, 502);
     }
     const data = await r.json();
     const content = data?.choices?.[0]?.message?.content ?? "{}";
-    let parsed: Record<string, unknown> = {};
-    try {
-      parsed = JSON.parse(content);
-    } catch (_) {
-      parsed = {};
-    }
+    const parsed = extractJson(content);
     return json({
       amount: parsed.amount ?? null,
       merchant: parsed.merchant ?? null,
