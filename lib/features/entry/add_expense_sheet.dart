@@ -14,6 +14,7 @@ import '../../data/category_repository.dart';
 import '../../data/expense_repository.dart';
 import '../../data/group_repository.dart';
 import '../../data/receipt_repository.dart';
+import '../../data/scan_service.dart';
 import '../../data/transcription_service.dart';
 import '../../domain/models/group.dart';
 import '../../domain/models/account.dart';
@@ -92,6 +93,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
   String? _error;
   String? _receiptPath; // storage path once a receipt is uploaded
   bool _uploadingReceipt = false;
+  bool _scanning = false; // AI receipt scan in progress
   String? _groupId; // when set, expense is shared with this group
 
   @override
@@ -300,8 +302,9 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
     });
   }
 
-  Future<void> _pickReceipt() async {
-    final source = await showModalBottomSheet<ImageSource>(
+  /// Asks the user to take a photo or pick one from the gallery.
+  Future<ImageSource?> _pickImageSource() {
+    return showModalBottomSheet<ImageSource>(
       context: context,
       showDragHandle: true,
       builder: (ctx) => SafeArea(
@@ -322,6 +325,52 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
         ),
       ),
     );
+  }
+
+  /// Snap or pick a bill photo → AI reads the total, merchant, and date and
+  /// fills the form. Works on Android and the iPhone PWA.
+  Future<void> _scanBill(List<ExpenseCategory> cats) async {
+    final source = await _pickImageSource();
+    if (source == null) return;
+    final picked = await ImagePicker()
+        .pickImage(source: source, imageQuality: 70, maxWidth: 1600);
+    if (picked == null) return;
+    setState(() {
+      _scanning = true;
+      _error = null;
+    });
+    try {
+      final bytes = await picked.readAsBytes();
+      final ct =
+          picked.name.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+      final res = await ref.read(scanServiceProvider).scan(bytes, contentType: ct);
+      if (!mounted) return;
+      final merchant = res.merchant ?? '';
+      setState(() {
+        if (res.amount != null && res.amount! > 0) {
+          _amount.text = trimAmount(res.amount!);
+        }
+        if (merchant.isNotEmpty) _note.text = merchant;
+        if (res.date != null) _date = res.date!;
+        _scanning = false;
+        if (res.amount == null) {
+          _error = "Couldn't read the total — check the photo or type it.";
+        }
+      });
+      // Guess a category from the merchant name.
+      if (merchant.isNotEmpty) _onQuickChanged(merchant, cats);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _scanning = false;
+          _error = 'Could not scan the bill. Try again or type it.';
+        });
+      }
+    }
+  }
+
+  Future<void> _pickReceipt() async {
+    final source = await _pickImageSource();
     if (source == null) return;
     final picked = await ImagePicker()
         .pickImage(source: source, imageQuality: 60, maxWidth: 1600);
@@ -510,6 +559,20 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
                         ),
                   border: const OutlineInputBorder(),
                 ),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _scanning ? null : () => _scanBill(cats),
+                icon: _scanning
+                    ? const SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.document_scanner_outlined),
+                label: Text(_scanning ? 'Reading the bill…' : 'Scan a bill (AI)'),
+                style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    minimumSize: const Size.fromHeight(0)),
               ),
               const SizedBox(height: 16),
               Row(

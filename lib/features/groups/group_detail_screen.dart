@@ -126,9 +126,17 @@ class GroupDetailScreen extends ConsumerWidget {
         icon: const Icon(Icons.add),
         label: const Text('Add shared'),
       ),
-      body: ListView(
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(groupExpensesProvider(group.id));
+          ref.invalidate(groupBudgetProvider(group.id));
+          ref.invalidate(groupMembersProvider(group.id));
+          await ref.read(groupExpensesProvider(group.id).future);
+        },
+        child: ListView(
         padding: const EdgeInsets.fromLTRB(
             AppSpace.lg, AppSpace.sm, AppSpace.lg, 100),
+        physics: const AlwaysScrollableScrollPhysics(),
         children: [
           // ---- Budget ----
           GlassCard(
@@ -281,6 +289,7 @@ class GroupDetailScreen extends ConsumerWidget {
               ),
             ),
         ],
+        ),
       ),
     );
   }
