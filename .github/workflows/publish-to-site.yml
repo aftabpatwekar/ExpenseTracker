@@ -1,0 +1,82 @@
+name: Publish web + APK to molbhav-site
+
+# Builds the Flutter web app (PWA) and a release APK, then publishes them into
+# the molbhav-site repo — replacing ONLY app/ and molbhav.apk, leaving the
+# landing page, terms and privacy untouched. Runs on every push to main (and
+# on demand), so the live site always matches the latest code.
+#
+# One-time setup (repo Settings -> Secrets and variables -> Actions):
+#   SUPABASE_URL        = https://dcbgcintizqbsczncmqe.supabase.co   (same as always)
+#   SUPABASE_ANON_KEY   = <your anon public key>                     (same as always)
+#   MOLBHAV_SITE_TOKEN  = a GitHub token that can write to molbhav-site
+#       -> github.com/settings/tokens?type=beta  (Fine-grained)
+#          Resource owner: your account · Only select repos: molbhav-site
+#          Repository permissions -> Contents: Read and write
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out app source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17 (for the Android build)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Recreate .env from secrets
+        run: |
+          cat > .env <<EOF
+          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+          EOF
+
+      - run: flutter pub get
+
+      - name: Build web (PWA) for the molbhav-site sub-path
+        run: flutter build web --release --base-href /molbhav-site/app/
+
+      - name: Build Android APK
+        run: flutter build apk --release
+
+      - name: Check out molbhav-site
+        uses: actions/checkout@v4
+        with:
+          repository: aftabpatwekar/molbhav-site
+          token: ${{ secrets.MOLBHAV_SITE_TOKEN }}
+          path: site
+
+      - name: Replace app/ and molbhav.apk
+        run: |
+          rm -rf site/app
+          mkdir -p site/app
+          cp -r build/web/. site/app/
+          cp build/app/outputs/flutter-apk/app-release.apk site/molbhav.apk
+
+      - name: Commit and push to molbhav-site
+        working-directory: site
+        run: |
+          git config user.name "molbhav-ci"
+          git config user.email "ci@users.noreply.github.com"
+          git add app molbhav.apk
+          if git diff --cached --quiet; then
+            echo "No changes to publish."
+          else
+            git commit -m "Publish latest web + APK (ExpenseTracker@${GITHUB_SHA::7})"
+            git push
+          fi
