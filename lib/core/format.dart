@@ -11,6 +11,9 @@ String formatMoney(num amount, {String symbol = '₹'}) {
 
 String formatDay(DateTime d) => DateFormat('d MMM').format(d);
 
+/// Day with year — used where a range can span different years.
+String formatDayYear(DateTime d) => DateFormat('d MMM yyyy').format(d);
+
 /// Drops a trailing ".0" so 250.0 shows as "250" but 250.5 stays "250.5".
 String trimAmount(double v) =>
     v == v.roundToDouble() ? v.toInt().toString() : v.toString();

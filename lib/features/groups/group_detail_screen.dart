@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/app_prefs.dart';
 import '../../core/format.dart';
 import '../../core/glass.dart';
 import '../../core/theme.dart';
@@ -13,6 +14,7 @@ import '../../domain/models/expense.dart';
 import '../../domain/models/expense_category.dart';
 import '../../domain/models/group.dart';
 import '../entry/add_expense_sheet.dart';
+import 'group_timeline.dart';
 
 class GroupDetailScreen extends ConsumerWidget {
   final Group group;
@@ -102,14 +104,6 @@ class GroupDetailScreen extends ConsumerWidget {
         ref.watch(categoriesProvider).asData?.value ?? const <ExpenseCategory>[];
     final catMap = {for (final c in cats) c.id: c};
 
-    final now = DateTime.now();
-    final monthSpend = expenses
-        .where((e) =>
-            e.isExpense &&
-            e.spentAt.year == now.year &&
-            e.spentAt.month == now.month)
-        .fold<double>(0, (s, e) => s + e.amount);
-
     return Scaffold(
       appBar: AppBar(
         title: Text(group.name),
@@ -138,53 +132,12 @@ class GroupDetailScreen extends ConsumerWidget {
             AppSpace.lg, AppSpace.sm, AppSpace.lg, 100),
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
-          // ---- Budget ----
-          GlassCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text('This month', style: theme.textTheme.titleMedium),
-                    ),
-                    TextButton(
-                      onPressed: () => _setBudget(context, ref, budget),
-                      child: Text(budget == null ? 'Set budget' : 'Edit'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpace.sm),
-                Text(formatMoney(monthSpend),
-                    style: theme.textTheme.headlineSmall),
-                if (budget != null) ...[
-                  Text('of ${formatMoney(budget)} budget',
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: theme.colorScheme.outline)),
-                  const SizedBox(height: AppSpace.md),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: LinearProgressIndicator(
-                      value: budget > 0
-                          ? (monthSpend / budget).clamp(0, 1).toDouble()
-                          : 0,
-                      minHeight: 10,
-                      backgroundColor: theme.colorScheme.surfaceContainerHigh,
-                      valueColor: AlwaysStoppedAnimation(
-                          monthSpend > budget ? kSpend : theme.colorScheme.primary),
-                    ),
-                  ),
-                  if (monthSpend > budget)
-                    Padding(
-                      padding: const EdgeInsets.only(top: AppSpace.sm),
-                      child: Text(
-                          'Over budget by ${formatMoney(monthSpend - budget)}',
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(color: kSpend)),
-                    ),
-                ],
-              ],
-            ),
+          // ---- Spend over a configurable timeline ----
+          _GroupSpendCard(
+            groupId: group.id,
+            expenses: expenses,
+            budget: budget,
+            onSetBudget: () => _setBudget(context, ref, budget),
           ),
           const SizedBox(height: AppSpace.lg),
           // ---- Invite ----
@@ -290,6 +243,152 @@ class GroupDetailScreen extends ConsumerWidget {
             ),
         ],
         ),
+      ),
+    );
+  }
+}
+
+/// Shared-spend card with a configurable timeline (This month / Last month /
+/// This year / All time / Custom). The choice is persisted per group so a
+/// tracked total no longer disappears when the calendar month ends.
+class _GroupSpendCard extends ConsumerStatefulWidget {
+  final String groupId;
+  final List<Expense> expenses;
+  final double? budget;
+  final VoidCallback onSetBudget;
+  const _GroupSpendCard({
+    required this.groupId,
+    required this.expenses,
+    required this.budget,
+    required this.onSetBudget,
+  });
+
+  @override
+  ConsumerState<_GroupSpendCard> createState() => _GroupSpendCardState();
+}
+
+class _GroupSpendCardState extends ConsumerState<_GroupSpendCard> {
+  String get _prefKey => 'group_timeline_${widget.groupId}';
+  late GroupTimeline _timeline;
+
+  @override
+  void initState() {
+    super.initState();
+    _timeline =
+        GroupTimeline.decode(ref.read(sharedPrefsProvider).getString(_prefKey));
+  }
+
+  Future<void> _apply(GroupTimeline t) async {
+    setState(() => _timeline = t);
+    await ref.read(sharedPrefsProvider).setString(_prefKey, t.encode());
+  }
+
+  Future<void> _pickCustom() async {
+    final now = DateTime.now();
+    final initial = _timeline.window(now) ??
+        DateTimeRange(start: DateTime(now.year, now.month, 1), end: now);
+    final picked = await showDateRangePicker(
+      context: context,
+      initialDateRange: initial,
+      firstDate: DateTime(now.year - 5),
+      lastDate: DateTime(now.year + 1, 12, 31),
+      helpText: 'Select spend range',
+    );
+    if (picked != null) {
+      await _apply(GroupTimeline(TimelineKind.custom,
+          start: picked.start, end: picked.end));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final now = DateTime.now();
+    final window = _timeline.window(now);
+    final spend = widget.expenses
+        .where((e) =>
+            e.isExpense &&
+            (window == null ||
+                (!e.spentAt.isBefore(window.start) &&
+                    !e.spentAt.isAfter(window.end))))
+        .fold<double>(0, (s, e) => s + e.amount);
+    final budget = widget.budget;
+    // A budget is a monthly cap, so only compare it when viewing a month.
+    final compareBudget = budget != null &&
+        (_timeline.kind == TimelineKind.thisMonth ||
+            _timeline.kind == TimelineKind.lastMonth);
+
+    String rangeLabel() {
+      if (_timeline.kind == TimelineKind.custom && window != null) {
+        return '${formatDayYear(window.start)} → ${formatDayYear(window.end)}';
+      }
+      return _timeline.label;
+    }
+
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(rangeLabel(), style: theme.textTheme.titleMedium),
+              ),
+              TextButton(
+                onPressed: widget.onSetBudget,
+                child: Text(budget == null ? 'Set budget' : 'Edit'),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpace.xs),
+          // Timeline selector.
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              for (final k in TimelineKind.values)
+                ChoiceChip(
+                  label: Text(GroupTimeline(k).label),
+                  selected: _timeline.kind == k,
+                  visualDensity: VisualDensity.compact,
+                  onSelected: (_) {
+                    if (k == TimelineKind.custom) {
+                      _pickCustom();
+                    } else {
+                      _apply(GroupTimeline(k));
+                    }
+                  },
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpace.sm),
+          Text(formatMoney(spend), style: theme.textTheme.headlineSmall),
+          if (compareBudget) ...[
+            Text('of ${formatMoney(budget)} monthly budget',
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: theme.colorScheme.outline)),
+            const SizedBox(height: AppSpace.md),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: budget > 0 ? (spend / budget).clamp(0, 1).toDouble() : 0,
+                minHeight: 10,
+                backgroundColor: theme.colorScheme.surfaceContainerHigh,
+                valueColor: AlwaysStoppedAnimation(
+                    spend > budget ? kSpend : theme.colorScheme.primary),
+              ),
+            ),
+            if (spend > budget)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpace.sm),
+                child: Text('Over budget by ${formatMoney(spend - budget)}',
+                    style: theme.textTheme.bodySmall?.copyWith(color: kSpend)),
+              ),
+          ] else if (budget != null)
+            Text('Monthly budget ${formatMoney(budget)}',
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: theme.colorScheme.outline)),
+        ],
       ),
     );
   }
