@@ -1,0 +1,83 @@
+name: Deploy web (PWA) + APK to Pages
+
+# Builds the Flutter web app and an Android APK on every push to main, then
+# publishes them to GitHub Pages:
+#   landing  -> https://<user>.github.io/ExpenseTracker/
+#   web/PWA  -> https://<user>.github.io/ExpenseTracker/app/
+#   APK      -> https://<user>.github.io/ExpenseTracker/molbhav.apk
+#
+# One-time setup:
+#   1. Repo Settings -> Pages -> Build and deployment -> Source: "GitHub Actions".
+#   2. Repo Settings -> Secrets and variables -> Actions -> add:
+#        SUPABASE_URL        = https://dcbgcintizqbsczncmqe.supabase.co
+#        SUPABASE_ANON_KEY   = <your anon public key>
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17 (for the Android build)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Recreate .env from secrets
+        run: |
+          cat > .env <<EOF
+          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+          EOF
+
+      - run: flutter pub get
+
+      - name: Build web (PWA)
+        run: flutter build web --release --base-href /ExpenseTracker/app/
+
+      - name: Build Android APK
+        run: flutter build apk --release
+
+      - name: Assemble the Pages site
+        run: |
+          mkdir -p site/app
+          cp -r build/web/. site/app/
+          cp build/app/outputs/flutter-apk/app-release.apk site/molbhav.apk
+          cp web_landing/index.html site/index.html
+          touch site/.nojekyll   # stop Jekyll from dropping Flutter's asset files
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
